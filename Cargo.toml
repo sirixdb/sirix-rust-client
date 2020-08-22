@@ -1,0 +1,15 @@
+[package]
+name = "sirix-rust-client"
+version = "0.1.0"
+authors = ["Ben Lovy <ben@deciduously.com>"]
+edition = "2018"
+license = "APACHE-2.0"
+description = "Rust interface for interacting with SirixDB"
+readme = "README.md"
+repository = "https://github.com/deciduously/sirix-rust-client/"
+keywords = ["database"]
+categories = ["api-bindings", "database"]
+homepage = "https://sirix.io/"
+# documentation = "https://docs.rs/sirix-rust-client"
+
+[dependencies]

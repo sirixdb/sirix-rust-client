@@ -6,7 +6,11 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum SirixError {
     #[error("Unable to communicate with SirixDB server")]
-    ConnectionError(#[from] http::Error),
+    ConnectionError(#[from] hyper::error::Error),
+    #[error("Malformed JSON response")]
+    FormatError(#[from] serde_json::error::Error),
+    #[error("Could not build HTTP request")]
+    ProtocolError(#[from] http::Error),
     #[error("Invalid URI")]
     InvalidUri(#[from] http::uri::InvalidUri),
 }

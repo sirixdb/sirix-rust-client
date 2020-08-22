@@ -14,5 +14,4 @@ pub use http::HttpClient;
 pub use sirix::Sirix;
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}

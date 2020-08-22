@@ -1,6 +1,7 @@
 //! The various types used in SirixDB transactions
 
 use super::info::NodeType;
+use serde::Deserialize;
 
 /// A single commit
 #[derive(Debug)]
@@ -9,6 +10,12 @@ pub struct Commit {
     revision: usize,
     author: String,
     commit_message: String,
+}
+
+/// database info struct
+#[derive(Debug, Deserialize)]
+pub struct DbInfo {
+    resources: Vec<String>, // should this be full-on resources?
 }
 
 /// A diff from a delete operation
@@ -22,12 +29,16 @@ pub struct DeleteDiff {
 /// A result from the global info request
 ///
 /// The `resources` field is only populated if the request was made using `withResources=True`.
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct InfoResult {
     name: String,
     info_type: String,
     resources: Option<Vec<String>>,
 }
+
+/// A full list for the global info request
+#[derive(Debug, Default, Deserialize)]
+pub struct InfoResults(Vec<InfoResult>);
 
 /// A diff from an insert operation
 #[derive(Debug)]

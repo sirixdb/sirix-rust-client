@@ -14,7 +14,7 @@ pub struct Auth {
     /// The password for this application
     password: String,
     /// Whether we need to check refresh?
-    // FIXME: I don't know what this is for yet
+    // FIXME: I don't know what this is for yet, write a real docstring when you do
     refresh_check: bool,
 }
 

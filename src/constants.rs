@@ -42,7 +42,7 @@ impl fmt::Display for DbType {
     }
 }
 
-/// The scope of the metadata to retunr using `readWithMetadata`
+/// The scope of the metadata to return using `readWithMetadata`
 // TODO doc link to actual method
 #[derive(Debug)]
 pub enum MetadataType {

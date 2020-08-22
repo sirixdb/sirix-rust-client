@@ -15,6 +15,7 @@ homepage = "https://sirix.io/"
 [dependencies]
 
 hyper = "0.13"
+thiserror = "1.0"
 
 [dependencies.tokio]
 version = "0.2"

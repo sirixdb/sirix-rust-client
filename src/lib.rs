@@ -2,12 +2,14 @@
 
 mod auth;
 mod constants;
+mod error;
 mod http;
 mod info;
 mod resource;
 mod sirix;
 mod types;
 
+pub use error::Result;
 pub use http::HttpClient;
 pub use sirix::Sirix;
 

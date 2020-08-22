@@ -13,3 +13,22 @@ homepage = "https://sirix.io/"
 # documentation = "https://docs.rs/sirix-rust-client"
 
 [dependencies]
+
+bytes = "0.5"
+hyper = "0.13"
+thiserror = "1.0"
+serde_json = "1.0"
+
+[dependencies.serde]
+
+version = "1.0"
+features = ["derive"]
+
+[dependencies.tokio]
+
+version = "0.2"
+features = ["full"]
+
+[dev-dependencies]
+
+pretty_assertions = "0.6"

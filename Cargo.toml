@@ -13,3 +13,13 @@ homepage = "https://sirix.io/"
 # documentation = "https://docs.rs/sirix-rust-client"
 
 [dependencies]
+
+hyper = "0.13"
+
+[dependencies.tokio]
+version = "0.2"
+features = ["full"]
+
+[dev-dependencies]
+
+pretty_assertions = "0.6"

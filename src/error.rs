@@ -13,6 +13,8 @@ pub enum SirixError {
     ProtocolError(#[from] http::Error),
     #[error("Invalid URI")]
     InvalidUri(#[from] http::uri::InvalidUri),
+    #[error("Malformed text response")]
+    TextError(#[from] std::io::Error),
 }
 
 pub type Result<T> = std::result::Result<T, SirixError>;

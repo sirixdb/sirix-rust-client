@@ -6,6 +6,7 @@ use hyper::{
     body, client::HttpConnector, header::HeaderValue, Body, Client, Method, Request, StatusCode,
     Uri,
 };
+use std::io::Read;
 
 /// Wrapper for the asynchronous HTTP client, to call SirixDB endpoints.
 #[derive(Debug)]
@@ -122,21 +123,54 @@ impl HttpClient {
 
     /// `HEAD /<db_name>/<resource>`
     ///
-    /// Verity the given resource exists in given database
+    /// Verify the given resource exists in given database.
     pub async fn resource_exists(
         &self,
         db_name: &str,
         db_type: DbType,
         resource: &str,
     ) -> Result<bool> {
-        let url: Uri = format!("{}{}/{}", &self.base_url, db_name, resource).parse()?;
         let req = Request::builder()
             .method(Method::HEAD)
             .header("content-type", &db_type.to_string())
-            .uri(&url)
+            .uri(self.resource_url(db_name, resource))
             .body(Body::empty())?;
 
         let resp = self.client.request(req).await?;
         Ok(resp.status() == StatusCode::OK)
+    }
+
+    /// `PUT /<db_name>/<resource>`
+    ///
+    /// Create a resource with given name in given database.
+    pub async fn create_resource(
+        &self,
+        db_name: &str,
+        db_type: DbType,
+        resource: &str,
+    ) -> Result<String> {
+        let req = Request::builder()
+            .method(Method::HEAD)
+            .header("content-type", &db_type.to_string())
+            .uri(self.resource_url(db_name, resource))
+            .body(Body::empty())?;
+
+        // Aggregate body
+        let resp = self.client.request(req).await?;
+        let body = body::aggregate(resp).await?;
+
+        // Read to a String
+        let mut text = String::new();
+        body.reader().read_to_string(&mut text)?;
+
+        Ok(text)
+    }
+
+    /// Helper function to build resource URLs
+    #[inline]
+    fn resource_url(&self, db_name: &str, resource: &str) -> Uri {
+        format!("{}{}/{}", &self.base_url, db_name, resource)
+            .parse()
+            .unwrap()
     }
 }

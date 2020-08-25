@@ -2,7 +2,10 @@
 
 use super::{constants::*, types::*, Result};
 use bytes::buf::BufExt;
-use hyper::{body, client::HttpConnector, header::HeaderValue, Body, Client, Method, Request, Uri};
+use hyper::{
+    body, client::HttpConnector, header::HeaderValue, Body, Client, Method, Request, StatusCode,
+    Uri,
+};
 
 /// Wrapper for the asynchronous HTTP client, to call SirixDB endpoints.
 #[derive(Debug)]
@@ -115,5 +118,25 @@ impl HttpClient {
         // Don't pass the response back up on success.  Just fire it off and return if successful.
         let _ = self.client.request(req).await?;
         Ok(())
+    }
+
+    /// `HEAD /<db_name>/<resource>`
+    ///
+    /// Verity the given resource exists in given database
+    pub async fn resource_exists(
+        &self,
+        db_name: &str,
+        db_type: DbType,
+        resource: &str,
+    ) -> Result<bool> {
+        let url: Uri = format!("{}{}/{}", &self.base_url, db_name, resource).parse()?;
+        let req = Request::builder()
+            .method(Method::HEAD)
+            .header("content-type", &db_type.to_string())
+            .uri(&url)
+            .body(Body::empty())?;
+
+        let resp = self.client.request(req).await?;
+        Ok(resp.status() == StatusCode::OK)
     }
 }

@@ -1,11 +1,29 @@
 //! This module contains the entrypoint struct for interacting with SirixDB
 
 use super::auth::Auth;
-use super::http::HttpClient;
+use super::HttpClient;
+use hyper::{client::HttpConnector, Client};
 
 /// Toplevel interface
 #[derive(Debug)]
 pub struct Sirix {
-    auth: Auth,
     client: HttpClient,
+}
+
+impl Sirix {
+    pub fn new(
+        base_url: &str,
+        username: &str,
+        password: &str,
+        client: Client<HttpConnector>,
+    ) -> Self {
+        let auth = Auth::new(username, password, base_url, client).unwrap();
+        let http_client = HttpClient::new(auth);
+        return Self {
+            client: http_client,
+        };
+    }
+    pub async fn authenticate(&mut self) {
+        self.client.authenticate().await;
+    }
 }

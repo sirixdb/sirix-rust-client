@@ -1,39 +1,23 @@
 //! This module handles the HTTP interface to a running SirixDB server.
 
-use super::{constants::*, types::*, Result};
+use super::{auth::Auth, constants::*, types::*, Result};
 use bytes::buf::BufExt;
-use hyper::{body, client::HttpConnector, header::HeaderValue, Body, Client, Method, Request, Uri};
+use hyper::{body, header::HeaderValue, Body, Method, Request, Uri};
 
 /// Wrapper for the asynchronous HTTP client, to call SirixDB endpoints.
 #[derive(Debug)]
 pub struct HttpClient {
-    /// The base URL for the SirixDB connection.
-    pub base_url: String,
-    /// A Hyper client to resolve requests to responses.
-    client: Client<HttpConnector>,
+    auth: Auth,
 }
 
 impl HttpClient {
-    /// Construct a new client.  Expects the URL for the running SirixDB server.
-    ///
-    /// ```
-    /// # use sirix_rust_client::HttpClient;
-    /// # use pretty_assertions::assert_eq;
-    /// let client = HttpClient::new("http://localhost:9443/").unwrap();
-    /// # assert_eq!(&client.base_url, "http://localhost:9443/")
-    /// ```
-    pub fn new(url: &str) -> Result<Self> {
-        // First, validate that passed URL is valid
-        // If it's not, we'll kick up an error, but we're still just storing a string
-        let _ = url.parse::<Uri>()?;
-
-        // If the above line didn't cause an error, we can build the struct
-        Ok(Self {
-            base_url: url.to_string(),
-            client: Client::new(),
-        })
+    pub fn new(auth: Auth) -> Self {
+        Self { auth: auth }
     }
-
+    pub async fn authenticate(&mut self) {
+        self.auth.authenticate().await;
+    }
+/*
     /// `GET /`
     ///
     /// If `resources` is `true`, appends query param `withResources=true`.
@@ -115,5 +99,5 @@ impl HttpClient {
         // Don't pass the response back up on success.  Just fire it off and return if successful.
         let _ = self.client.request(req).await?;
         Ok(())
-    }
+    }*/
 }

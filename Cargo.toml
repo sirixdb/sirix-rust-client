@@ -1,12 +1,12 @@
 [package]
 name = "sirix-rust-client"
 version = "0.1.0"
-authors = ["Ben Lovy <ben@deciduously.com>"]
+authors = ["Ben Lovy <ben@deciduously.com>", "Moshe Uminer <47164590+mosheduminer@users.noreply.github.com>"]
 edition = "2018"
 license = "APACHE-2.0"
 description = "Rust interface for interacting with SirixDB"
 readme = "README.md"
-repository = "https://github.com/deciduously/sirix-rust-client/"
+repository = "https://github.com/sirixdb/sirix-rust-client/"
 keywords = ["database"]
 categories = ["api-bindings", "database"]
 homepage = "https://sirix.io/"
@@ -16,6 +16,7 @@ homepage = "https://sirix.io/"
 
 bytes = "0.5"
 hyper = "0.13"
+log = "0.4"
 thiserror = "1.0"
 serde_json = "1.0"
 
@@ -30,5 +31,6 @@ version = "0.2"
 features = ["full"]
 
 [dev-dependencies]
+mockito = "0.27.0"
 
 pretty_assertions = "0.6"

@@ -5,6 +5,7 @@ mod constants;
 mod error;
 mod http;
 mod info;
+mod mock;
 mod resource;
 mod sirix;
 mod types;

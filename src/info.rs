@@ -1,19 +1,29 @@
 //! This module contains types for holding token information and the various node types
 
+use serde::{Deserialize, Serialize};
 use std::{fmt, io, str::FromStr};
 
 /// A specific connection token
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(Serialize, std::cmp::PartialEq))]
 pub struct TokenData {
     pub access_token: String,
     pub expires_at: usize,
     pub expires_in: usize,
+    #[serde(rename = "not-before-policy")]
     pub not_before_policy: usize,
     pub refresh_expires_in: usize,
     pub refresh_token: String,
     pub scope: String,
     pub session_state: String,
     pub token_type: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TokenPostData {
+    pub username: String,
+    pub password: String,
+    pub grant_type: String,
 }
 
 // FIXME: This is super verbose, is there a better way?

@@ -108,6 +108,27 @@ impl Auth {
             Err(err) => warn!("failure to retrieve token using credentials: {:#?}", err),
         }
     }
+
+    async fn refresh(&mut self) -> () {
+        let mut header_map = HeaderMap::new();
+        header_map.append("content-type", HeaderValue::from_static("application/json"));
+        let refresh_json = format!(
+            r#"{{"refresh_token":"{}"}}"#,
+            self.token_data.as_ref().unwrap().refresh_token.clone()
+        );
+        let response: std::result::Result<TokenData, SirixError> = self
+            .request_impl::<TokenData>(
+                PathAndQuery::from_static("/token"),
+                Method::POST,
+                Body::from(refresh_json),
+                header_map,
+            )
+            .await;
+        match response {
+            Ok(result) => self.token_data = Some(result),
+            Err(err) => warn!("failure to refresh token using refresh_token: {:#?}", err),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -117,14 +138,28 @@ mod tests {
     use mockito;
     #[tokio::test]
     async fn test_authenticate() {
+        // setup mocks
         let url = &mockito::server_url();
-        let client = hyper::Client::new();
-        let mut auth_struct = Auth::new("admin", "admin", url, client).unwrap();
         let _m = test_mocks::mock_auth();
-        auth_struct.authenticate().await;
-        assert_eq!(
-            auth_struct.token_data.unwrap(),
-            test_mocks::get_token_data()
-        );
+        // setup auth struct
+        let client = hyper::Client::new();
+        let mut auth = Auth::new("admin", "admin", url, client).unwrap();
+        // test authenticate
+        auth.authenticate().await;
+        assert_eq!(auth.token_data.unwrap(), test_mocks::get_token_data());
+    }
+    #[tokio::test]
+    async fn test_refresh() {
+        // setup mocks
+        let url = &mockito::server_url();
+        let _m = test_mocks::mock_auth();
+        let _m2 = test_mocks::mock_refresh();
+        // prepare auth struct
+        let client = hyper::Client::new();
+        let mut auth = Auth::new("admin", "admin", url, client).unwrap();
+        auth.authenticate().await;
+        // test refresh
+        auth.refresh().await;
+        assert_ne!(auth.token_data.unwrap(), test_mocks::get_token_data());
     }
 }

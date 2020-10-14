@@ -31,6 +31,6 @@ version = "0.2"
 features = ["full"]
 
 [dev-dependencies]
-mockito = "0.27.0"
 
+mockito = "0.27.0"
 pretty_assertions = "0.6"

@@ -12,6 +12,7 @@ mod types;
 
 pub use error::Result;
 pub use http::HttpClient;
+pub use sirix::sirix_init;
 pub use sirix::Sirix;
 
 #[cfg(test)]

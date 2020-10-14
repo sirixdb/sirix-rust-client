@@ -27,3 +27,14 @@ impl Sirix {
         self.client.authenticate().await;
     }
 }
+
+pub async fn sirix_init(
+    base_url: &str,
+    username: &str,
+    password: &str,
+    client: Client<HttpConnector>,
+) -> Sirix {
+    let mut sirix = Sirix::new(base_url, username, password, client);
+    sirix.authenticate().await;
+    return sirix;
+}

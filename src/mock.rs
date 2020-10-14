@@ -26,4 +26,20 @@ pub mod test_mocks {
             .with_body(to_string(&get_token_data()).unwrap())
             .create()
     }
+    pub fn mock_refresh() -> Mock {
+        let mut response = get_token_data();
+        response.access_token = "refreshed".to_string();
+        mock("POST", "/token")
+            .match_header("content-type", "application/json")
+            .match_body(
+                format!(
+                    r#"{{"refresh_token":"{}"}}"#,
+                    get_token_data().refresh_token
+                )
+                .as_ref(),
+            )
+            .with_status(200)
+            .with_body(to_string(&response).unwrap())
+            .create()
+    }
 }

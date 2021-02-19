@@ -11,10 +11,14 @@ use tokio::sync::watch::Receiver;
 
 #[derive(Debug)]
 pub struct Sirix {
+    /// the scheme with which to access the SirixDB server
     scheme: Scheme,
+    /// the authority at which to access the SirixDB server
     authority: Authority,
+    /// the message channel for sending HTTP requests
     channel: Sender<Message>,
-    auth_channel: Option<Receiver<Option<info::TokenData>>>,
+    /// the channel containing authentication data
+    auth_channel: Option<Receiver<Option<info::TokenData>>>,    
 }
 
 impl Sirix {

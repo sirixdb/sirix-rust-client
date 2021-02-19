@@ -1,6 +1,7 @@
 //! This module contains types for holding token information and the various node types
 
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use std::{fmt, io, str::FromStr};
 
 /// A specific connection token
@@ -26,20 +27,30 @@ pub struct TokenPostData {
     pub grant_type: String,
 }
 
-// FIXME: This is super verbose, is there a better way?
-
 /// All the various node types
-#[derive(Debug)]
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
 pub enum NodeType {
+    #[serde_as(as = "DisplayFromStr")]
     Array,
+    #[serde_as(as = "DisplayFromStr")]
     BooleanValue,
+    #[serde_as(as = "DisplayFromStr")]
     NullValue,
+    #[serde_as(as = "DisplayFromStr")]
     NumberValue,
+    #[serde_as(as = "DisplayFromStr")]
     Object,
+    #[serde_as(as = "DisplayFromStr")]
     ObjectBooleanValue,
+    #[serde_as(as = "DisplayFromStr")]
     ObjectKey,
+    #[serde_as(as = "DisplayFromStr")]
     ObjectNullValue,
+    #[serde_as(as = "DisplayFromStr")]
     ObjectStringValue,
+    #[serde_as(as = "DisplayFromStr")]
     StringValue,
 }
 

@@ -18,6 +18,8 @@ bytes = "1"
 log = "0.4"
 thiserror = "1.0"
 serde_json = "1.0"
+serde_with = "1.6.4"
+quick-xml = "0.21.0"
 futures-core = "0.3.12"
 
 [dependencies.hyper]

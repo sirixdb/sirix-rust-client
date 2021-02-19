@@ -1,16 +1,20 @@
 //! The various types used in SirixDB transactions
 
 use super::info::NodeType;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// A single commit
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct Commit {
     revision_timestamp: String,
     revision: usize,
     author: String,
     commit_message: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct History(Vec<Commit>);
 
 type Resources = Vec<String>;
 
@@ -51,6 +55,42 @@ pub struct InfoResults(Vec<InfoResult>);
 #[derive(Debug, Default, Deserialize)]
 pub struct InfoResultsWithResources(Vec<InfoResultWithResources>);
 
+#[derive(Debug, Default, Serialize)]
+pub struct Query {
+    #[serde(rename = "startResultSeqIndex")]
+    start_result_seq_index: Option<u128>,
+    end_result_seq_index: Option<u128>,
+    query: String,
+}
+
+pub struct NodeIdAndEtag {
+    pub node_id: u128,
+    pub etag: String,
+}
+
+pub enum RevisionArg {
+    SingleRevision(SingleRevision),
+    TwoRevisions(TwoRevisions),
+}
+
+pub enum SingleRevision {
+    Timestamp(String),
+    Number(u64),
+}
+
+pub enum TwoRevisions {
+    Timestamp(String, String),
+    Number(u64, u64),
+}
+
+pub struct ReadArgs {
+    pub node_id: Option<u128>,
+    pub revision: RevisionArg,
+    pub max_level: Option<u64>,
+    pub top_level_limit: Option<u128>,
+    pub top_level_skip_last_node: Option<u128>,
+}
+
 /// A diff from an insert operation
 #[derive(Debug)]
 pub struct InsertDiff {
@@ -66,7 +106,7 @@ pub struct InsertDiff {
 /// Transaction metadata
 ///
 /// `descendant_count` and `child_count` are only provided if `node_type` is NodeType::Object or NodeType::Array
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct Metadata {
     node_key: usize,
     hash: isize,
@@ -123,4 +163,70 @@ pub struct ReplaceDiff {
 pub struct Revision {
     timestamp: String,
     revision: usize,
+}
+
+/// All possible options for a resource update
+#[derive(Debug)]
+pub enum Insert {
+    Child,
+    Left,
+    Right,
+    Replace,
+}
+
+impl fmt::Display for Insert {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Insert::*;
+        let sirix_op = match self {
+            Child => "asFirstChild",
+            Left => "asLeftSibling",
+            Right => "asRightSibling",
+            Replace => "replace",
+        };
+        write!(f, "{}", sirix_op)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct XML;
+#[derive(Debug, Clone)]
+pub struct Json;
+
+/// All possible options database (and resource) types
+#[derive(Debug, Clone)]
+pub enum DbType {
+    Json(Json),
+    XML(XML),
+}
+
+impl fmt::Display for DbType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use DbType::*;
+        let db_type = match self {
+            Json(_) => "application/json",
+            XML(_) => "application/xml",
+        };
+        write!(f, "{}", db_type)
+    }
+}
+
+/// The scope of the metadata to return using `readWithMetadata`
+// TODO doc link to actual method
+#[derive(Debug)]
+pub enum MetadataType {
+    All,
+    Key,
+    KeyAndChild,
+}
+
+impl fmt::Display for MetadataType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use MetadataType::*;
+        let db_type = match self {
+            All => "true", // bool??
+            Key => "nodeKey",
+            KeyAndChild => "nodeKeyAndChildCount",
+        };
+        write!(f, "{}", db_type)
+    }
 }

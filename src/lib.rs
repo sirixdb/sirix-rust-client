@@ -2,6 +2,7 @@
 
 mod auth;
 mod constants;
+mod client;
 mod error;
 mod http;
 mod info;
@@ -10,10 +11,10 @@ mod resource;
 mod sirix;
 mod types;
 
-pub use error::Result;
-pub use http::HttpClient;
-pub use sirix::sirix_init;
-pub use sirix::Sirix;
+pub use error::SirixResult;
+//pub use http::HttpClient;
+//pub use sirix::sirix_init;
+//pub use sirix::Sirix;
 
 #[cfg(test)]
 mod tests {}

@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum SirixError {
     #[error("Unable to communicate with SirixDB server")]
-    ConnectionError(#[from] hyper::error::Error),
+    ConnectionError(#[from] hyper::Error),
     #[error("Malformed JSON response")]
     FormatError(#[from] serde_json::error::Error),
     #[error("Could not build HTTP request")]
@@ -15,4 +15,4 @@ pub enum SirixError {
     InvalidUri(#[from] http::uri::InvalidUri),
 }
 
-pub type Result<T> = std::result::Result<T, SirixError>;
+pub type SirixResult<T> = std::result::Result<T, SirixError>;

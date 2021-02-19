@@ -12,10 +12,12 @@ pub struct Commit {
     commit_message: String,
 }
 
+type Resources = Vec<String>;
+
 /// database info struct
 #[derive(Debug, Deserialize)]
 pub struct DbInfo {
-    resources: Vec<String>, // should this be full-on resources?
+    resources: Resources, // should this be full-on resources?
 }
 
 /// A diff from a delete operation
@@ -27,18 +29,27 @@ pub struct DeleteDiff {
 }
 
 /// A result from the global info request
-///
-/// The `resources` field is only populated if the request was made using `withResources=True`.
 #[derive(Debug, Deserialize)]
 pub struct InfoResult {
     name: String,
     info_type: String,
-    resources: Option<Vec<String>>,
 }
 
-/// A full list for the global info request
+/// A result from the global info request, resources included
+#[derive(Debug, Deserialize)]
+pub struct InfoResultWithResources {
+    name: String,
+    info_type: String,
+    resources: Resources,
+}
+
+/// A full list for the global info request, without resources
 #[derive(Debug, Default, Deserialize)]
 pub struct InfoResults(Vec<InfoResult>);
+
+/// A full list for the global info request, with resources
+#[derive(Debug, Default, Deserialize)]
+pub struct InfoResultsWithResources(Vec<InfoResultWithResources>);
 
 /// A diff from an insert operation
 #[derive(Debug)]

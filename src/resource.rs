@@ -1,5 +1,5 @@
 //! Working with a Sirix resource.
-
+/*
 use super::{auth::Auth, constants::DbType, http::HttpClient};
 
 ///  Struct for manipulating a resource
@@ -16,3 +16,4 @@ pub struct Resource {
     /// The authentication data.
     auth: Auth,
 }
+*/

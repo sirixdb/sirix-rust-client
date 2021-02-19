@@ -1,103 +1,267 @@
 //! This module handles the HTTP interface to a running SirixDB server.
 
-use super::{auth::Auth, constants::*, types::*, Result};
-use bytes::buf::BufExt;
-use hyper::{body, header::HeaderValue, Body, Method, Request, Uri};
+use super::client::{request_impl, Message, SirixResponse};
+use super::error::SirixResult;
+use super::{constants::*, types::*};
+// use bytes::Bytes;
+// use futures_core::Stream;
+use hyper::http::uri::{Authority, PathAndQuery, Scheme};
+use hyper::{header::HeaderValue, Body, HeaderMap, Method};
+use serde::de::DeserializeOwned;
+// use std::error::Error;
+use std::str::FromStr;
+use tokio::sync::mpsc::Sender;
 
 /// Wrapper for the asynchronous HTTP client, to call SirixDB endpoints.
-#[derive(Debug)]
-pub struct HttpClient {
-    auth: Auth,
+
+/// `GET /`
+pub async fn global_info(
+    scheme: Scheme,
+    authority: Authority,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<InfoResults>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => {}
+    };
+    header_map.append("accept", HeaderValue::from_static("application/json"));
+
+    // Perform request
+    request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_static("/?withResources=true"),
+        Method::GET,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
+/// `GET /?withResources=true`
+pub async fn global_info_with_resources(
+    scheme: Scheme,
+    authority: Authority,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<InfoResultsWithResources>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => {}
+    };
+    header_map.append("accept", HeaderValue::from_static("application/json"));
+
+    // Perform request
+    request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_static("/?withResources=true"),
+        Method::GET,
+        header_map,
+        Body::empty(),
+    )
+    .await
 }
 
-impl HttpClient {
-    pub fn new(auth: Auth) -> Self {
-        Self { auth: auth }
-    }
-    pub async fn authenticate(&mut self) {
-        self.auth.authenticate().await;
-    }
-/*
-    /// `GET /`
-    ///
-    /// If `resources` is `true`, appends query param `withResources=true`.
-    pub async fn global_info(&self, resources: bool) -> Result<InfoResults> {
-        // FIXME: I feel like there's a better way than just pasting a string
-        let uri: Uri = if resources {
-            format!("{}?withResources=true", self.base_url).parse()?
-        } else {
-            self.base_url.parse()?
-        };
+/// `DELETE /`
+///
+/// Careful - will delete all databases and associated resources.
+pub async fn delete_all(
+    scheme: Scheme,
+    authority: Authority,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<()>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => {}
+    };
 
-        // Perform request
-        let response = self.client.get(uri).await?;
-        // Aggregate body
-        let body = body::aggregate(response).await?;
-        // Parse json
-        let full_list = serde_json::from_reader(body.reader())?;
+    // perform request
+    request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_static("/"),
+        Method::DELETE,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
 
-        Ok(full_list)
-    }
+/// `PUT /<db_name>`
+///
+/// Create a new database with name `db_name` and type `db_type`.
+pub async fn create_database(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    db_type: DbType,
+    authorization: &str,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<()>> {
+    let mut header_map = HeaderMap::new();
+    header_map.append(
+        "authorization",
+        HeaderValue::from_str(authorization).unwrap(),
+    );
+    header_map.append(
+        "content-type",
+        HeaderValue::from_str(&db_type.to_string()).unwrap(),
+    );
 
-    /// `DELETE /`
-    ///
-    /// Careful - will delete all databases and associated resources.
-    pub async fn delete_all(&self) -> Result<()> {
-        let req = Request::builder()
-            .method(Method::DELETE)
-            .uri(&self.base_url)
-            .body(Body::default())?;
+    request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&("/".to_owned() + db_name)).unwrap(),
+        Method::PUT,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
 
-        // Don't pass the response back up on success.  Just fire it off and return if successful.
-        let _ = self.client.request(req).await?;
-        Ok(())
-    }
+/// `GET /<db_name>`
+///
+/// Return information about database with name `db_name`.
+pub async fn get_database_info(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    authorization: &str,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<DbInfo>> {
+    let mut header_map = HeaderMap::new();
+    header_map.append(
+        "authorization",
+        HeaderValue::from_str(authorization).unwrap(),
+    );
+    header_map.append("accept", HeaderValue::from_static("application/json"));
 
-    /// `PUT /<db_name>`
-    ///
-    /// Create a new database with name `db_name`.
-    pub async fn create_database(&self, db_name: String, db_type: DbType) -> Result<()> {
-        let req = Request::builder()
-            .method(Method::PUT)
-            .header("content-type", &db_type.to_string())
-            .uri(&self.base_url)
-            .body(Body::from(db_name))?;
+    request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&("/".to_owned() + db_name)).unwrap(),
+        Method::GET,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
 
-        // Don't pass the response back up on success.  Just fire it off and return if successful.
-        let _ = self.client.request(req).await?;
-        Ok(())
-    }
+/// `DELETE /<db_name>`
+///
+/// Delete database with name `db_name`.
+pub async fn delete_database(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    authorization: &str,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<()>> {
+    let mut header_map = HeaderMap::new();
+    header_map.append(
+        "authorization",
+        HeaderValue::from_str(authorization).unwrap(),
+    );
 
-    /// `GET /<db_name>`
-    ///
-    /// Return information about database with name `db_name`.
-    pub async fn get_database_info(&self, db_name: String) -> Result<DbInfo> {
-        let req = Request::builder()
-            .method(Method::GET)
-            .uri(&self.base_url)
-            .body(Body::from(db_name))?;
+    request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&("/".to_owned() + db_name)).unwrap(),
+        Method::DELETE,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
+/// `HEAD /<db_name>/<name>`
+///
+/// Head request to resource, to determine if resource exists
+pub async fn resource_exists(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    db_type: DbType,
+    name: &str,
+    authorization: &str,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<bool>> {
+    let mut header_map = HeaderMap::new();
+    header_map.append(
+        "authorization",
+        HeaderValue::from_str(authorization).unwrap(),
+    );
+    header_map.append(
+        "content-type",
+        HeaderValue::from_str(&db_type.to_string()).unwrap(),
+    );
 
-        // Perform request
-        let response = self.client.request(req).await?;
-        // Aggregate body
-        let body = body::aggregate(response).await?;
-        // Parse json
-        let db_info = serde_json::from_reader(body.reader())?;
-
-        Ok(db_info)
-    }
-
-    /// `DELETE /<db_name>`
-    ///
-    /// Delete database with name `db_name`.
-    pub async fn delete_database(&self, db_name: String) -> Result<()> {
-        let req = Request::builder()
-            .method(Method::DELETE)
-            .uri(&self.base_url)
-            .body(Body::from(db_name))?;
-
-        // Don't pass the response back up on success.  Just fire it off and return if successful.
-        let _ = self.client.request(req).await?;
-        Ok(())
-    }*/
+    request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&("/".to_owned() + db_name + name)).unwrap(),
+        Method::DELETE,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
+/// `PUT /<db_name>/<name>`
+///
+/// Put request to create resource, overwrites if it already exists
+pub async fn create_resource<T: DeserializeOwned>(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    db_type: DbType,
+    name: &str,
+    initial_data: String,
+    authorization: &str,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<T>> {
+    let mut header_map = HeaderMap::new();
+    header_map.append(
+        "authorization",
+        HeaderValue::from_str(authorization).unwrap(),
+    );
+    header_map.append(
+        "content-type",
+        HeaderValue::from_str(&db_type.to_string()).unwrap(),
+    );
+    request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&("/".to_owned() + db_name + name)).unwrap(),
+        Method::PUT,
+        header_map,
+        Body::from(initial_data),
+    )
+    .await
 }

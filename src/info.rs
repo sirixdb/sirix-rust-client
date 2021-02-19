@@ -4,15 +4,15 @@ use serde::{Deserialize, Serialize};
 use std::{fmt, io, str::FromStr};
 
 /// A specific connection token
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[cfg_attr(test, derive(Serialize, std::cmp::PartialEq))]
 pub struct TokenData {
     pub access_token: String,
-    pub expires_at: usize,
-    pub expires_in: usize,
+    pub expires_at: u64,
+    pub expires_in: u64,
     #[serde(rename = "not-before-policy")]
-    pub not_before_policy: usize,
-    pub refresh_expires_in: usize,
+    pub not_before_policy: u64,
+    pub refresh_expires_in: u64,
     pub refresh_token: String,
     pub scope: String,
     pub session_state: String,

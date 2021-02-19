@@ -1,40 +1,113 @@
 //! This module contains the entrypoint struct for interacting with SirixDB
 
-use super::auth::Auth;
-use super::HttpClient;
-use hyper::{client::HttpConnector, Client};
+use super::client::{Message, SirixResponse};
+use super::http::{delete_all, global_info, global_info_with_resources};
+use super::info;
+use super::types::{InfoResults, InfoResultsWithResources};
+use super::SirixResult;
+use hyper::http::uri::{Authority, Scheme, Uri};
+use tokio::sync::mpsc::Sender;
+use tokio::sync::watch::Receiver;
 
-/// Toplevel interface
 #[derive(Debug)]
 pub struct Sirix {
-    client: HttpClient,
+    scheme: Scheme,
+    authority: Authority,
+    channel: Sender<Message>,
+    auth_channel: Option<Receiver<Option<info::TokenData>>>,
 }
 
 impl Sirix {
     pub fn new(
-        base_url: &str,
-        username: &str,
-        password: &str,
-        client: Client<HttpConnector>,
+        base_uri: Uri,
+        channel: Sender<Message>,
+        auth_channel: Option<Receiver<Option<info::TokenData>>>,
     ) -> Self {
-        let auth = Auth::new(username, password, base_url, client).unwrap();
-        let http_client = HttpClient::new(auth);
         return Self {
-            client: http_client,
+            scheme: base_uri.scheme().unwrap_or(&Scheme::HTTP).clone(),
+            authority: base_uri
+                .authority()
+                .unwrap_or(&Authority::from_static("localhost:9443"))
+                .clone(),
+            channel: channel,
+            auth_channel: auth_channel,
         };
     }
-    pub async fn authenticate(&mut self) {
-        self.client.authenticate().await;
-    }
-}
 
-pub async fn sirix_init(
-    base_url: &str,
-    username: &str,
-    password: &str,
-    client: Client<HttpConnector>,
-) -> Sirix {
-    let mut sirix = Sirix::new(base_url, username, password, client);
-    sirix.authenticate().await;
-    return sirix;
+    pub async fn info(&self) -> SirixResult<SirixResponse<InfoResults>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                global_info(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                global_info(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
+
+    pub async fn info_with_resources(
+        &self,
+    ) -> SirixResult<SirixResponse<InfoResultsWithResources>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                global_info_with_resources(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                global_info_with_resources(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
+
+    pub async fn delete_all(&self) -> SirixResult<SirixResponse<()>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                delete_all(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                delete_all(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
 }

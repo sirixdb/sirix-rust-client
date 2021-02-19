@@ -31,7 +31,7 @@ pub mod test_mocks {
         response.access_token = "refreshed".to_string();
         mock("POST", "/token")
             .match_header("content-type", "application/json")
-            .match_body(
+            .match_body::<&str>(
                 format!(
                     r#"{{"refresh_token":"{}"}}"#,
                     get_token_data().refresh_token

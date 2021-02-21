@@ -32,16 +32,30 @@ pub struct TokenPostData {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum NodeType {
+    NodeTypeContainer,
+    NodeTypePrimitive,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum NodeTypeContainer {
+    #[serde_as(as = "DisplayFromStr")]
+    Object,
     #[serde_as(as = "DisplayFromStr")]
     Array,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum NodeTypePrimitive {
     #[serde_as(as = "DisplayFromStr")]
     BooleanValue,
     #[serde_as(as = "DisplayFromStr")]
     NullValue,
     #[serde_as(as = "DisplayFromStr")]
     NumberValue,
-    #[serde_as(as = "DisplayFromStr")]
-    Object,
     #[serde_as(as = "DisplayFromStr")]
     ObjectBooleanValue,
     #[serde_as(as = "DisplayFromStr")]
@@ -54,15 +68,13 @@ pub enum NodeType {
     StringValue,
 }
 
-impl fmt::Display for NodeType {
+impl fmt::Display for NodeTypePrimitive {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use NodeType::*;
+        use NodeTypePrimitive::*;
         let upper_snake = match self {
-            Array => "ARRAY",
             BooleanValue => "BOOLEAN_VALUE",
             NullValue => "NULL_VALUE",
             NumberValue => "NUMBER_VALUE",
-            Object => "OBJECT",
             ObjectBooleanValue => "OBJECT_BOOLEAN_VALUE",
             ObjectKey => "OBJECT_KEY",
             ObjectNullValue => "OBJECT_NULL_VALUE",
@@ -73,21 +85,45 @@ impl fmt::Display for NodeType {
     }
 }
 
-impl FromStr for NodeType {
+impl FromStr for NodeTypePrimitive {
     type Err = io::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use NodeType::*;
+        use NodeTypePrimitive::*;
         match s {
-            "ARRAY" => Ok(Array),
             "BOOLEAN_VALUE" => Ok(BooleanValue),
             "NULL_VALUE" => Ok(NullValue),
             "NUMBER_VALUE" => Ok(NumberValue),
-            "OBJECT" => Ok(Object),
             "OBJECT_BOOLEAN_VALUE" => Ok(ObjectBooleanValue),
             "OBJECT_KEY" => Ok(ObjectKey),
             "OBJECT_NULL_VALUE" => Ok(ObjectNullValue),
             "OBJECT_STRING_VALUE" => Ok(ObjectStringValue),
             "STRING_VALUE" => Ok(StringValue),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Unsupported node type {}", s),
+            )),
+        }
+    }
+}
+
+impl fmt::Display for NodeTypeContainer {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use NodeTypeContainer::*;
+        let upper_snake = match self {
+            Array => "ARRAY",
+            Object => "OBJECT",
+        };
+        write!(f, "{}", upper_snake)
+    }
+}
+
+impl FromStr for NodeTypeContainer {
+    type Err = io::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use NodeTypeContainer::*;
+        match s {
+            "ARRAY" => Ok(Array),
+            "OBJECT" => Ok(Object),
             _ => Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 format!("Unsupported node type {}", s),

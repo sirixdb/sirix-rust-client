@@ -1,7 +1,7 @@
 //! The various types used in SirixDB transactions
 
-use super::info::NodeType;
-use serde::{Deserialize, Serialize};
+use super::info::{NodeTypeContainer, NodeTypePrimitive};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 
 /// A single commit
@@ -29,7 +29,7 @@ pub struct DbInfo {
 pub struct DeleteDiff {
     node_key: usize,
     dewey_id: String,
-    depth: usize,
+    depth: u64,
 }
 
 /// A result from the global info request
@@ -59,6 +59,7 @@ pub struct InfoResultsWithResources(Vec<InfoResultWithResources>);
 pub struct Query {
     #[serde(rename = "startResultSeqIndex")]
     start_result_seq_index: Option<u128>,
+    #[serde(rename = "endResultSeqIndex")]
     end_result_seq_index: Option<u128>,
     query: String,
 }
@@ -91,56 +92,111 @@ pub struct ReadArgs {
     pub top_level_skip_last_node: Option<u128>,
 }
 
+pub struct DiffArgs {
+    pub first_revision: SingleRevision,
+    pub second_revision: SingleRevision,
+    pub node_id: Option<u128>,
+    pub max_depth: Option<u64>,
+}
+
 /// A diff from an insert operation
 #[derive(Debug)]
 pub struct InsertDiff {
-    node_key: usize,
+    node_key: u128,
     insert_position_node_key: usize,
     insert_position: String,
     dewey_id: String,
-    depth: usize,
+    depth: u64,
     insert_type: String,
     data: String,
 }
 
-/// Transaction metadata
-///
-/// `descendant_count` and `child_count` are only provided if `node_type` is NodeType::Object or NodeType::Array
 #[derive(Debug, Deserialize)]
-pub struct Metadata {
+pub struct MetadataPrimitive {
     node_key: usize,
     hash: isize,
-    node_type: NodeType,
-    descendant_count: Option<usize>,
-    child_count: Option<usize>,
+    node_type: NodeTypePrimitive,
 }
 
-/*
-    class MetaNode(TypedDict):
-        """
-        ``key`` is provided only if ``type`` is :py:class:`pysirix.info.NodeType` ``OBJECT_KEY``.
-        ``value`` is of type ``List[MetaNode]`` if ``metadata.type`` is ``OBJECT`` or ``ARRAY``,
-        however, if ``metadata.childCount`` is 0, then ``value`` is an emtpy ``dict``, or an empty
-        ``list``, depending on whether ``metadata.type`` is ``OBJECT`` or ``ARRAY``.
-        ``value`` is of type :py:class:`MetaNode` if ``metadata.type`` is ``OBJECT_KEY``.
-        ``value`` is a ``str`` if ``metadata.type`` is ``OBJECT_STRING_VALUE`` or ``STRING_VALUE``.
-        ``value`` is an ``int`` or ``float`` if ``metadata.type`` == ``OBJECT_NUMBER_VALUE`` or ``NUMBER_VALUE``.
-        ``value`` is a ``bool`` if ``metadata.type`` is ``OBJECT_BOOLEAN_VALUE`` or ``BOOLEAN_VALUE``.
-        ``value`` is ``None`` if ``metadata.type`` is ``OBJECT_NULL_VALUE`` or ``NULL_VALUE``.
-        """
+#[derive(Debug, Deserialize)]
+pub struct MetadataContainer {
+    node_key: usize,
+    hash: isize,
+    node_type: NodeTypeContainer,
+    descendant_count: usize,
+    child_count: usize,
+}
 
-        metadata: Metadata
-        key: str
-        value: Union[
-            List[Iterable["MetaNode"]],
-            Iterable["MetaNode"],
-            str,
-            int,
-            float,
-            bool,
-            None,
-        ]
-*/
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum MetaNode {
+    OjbectKey(MetaNodeObjectKey),
+    Array(MetaNodeArray),
+    Object(MetaNodeObject),
+    String(MetaNodeString),
+    Number(MetaNodeNumber),
+    Bool(MetaNodeBool),
+    Null(MetaNodeNull),
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetaNodeObjectKey {
+    pub metadata: MetadataPrimitive,
+    pub key: String,
+    pub value: Box<MetaNode>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetaNodeObject {
+    pub metadata: MetadataContainer,
+    #[serde(deserialize_with = "from_list_or_empty_object")]
+    pub value: Vec<MetaNode>,
+}
+
+fn from_list_or_empty_object<'de, D>(deserializer: D) -> Result<Vec<MetaNode>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    if s.chars().nth(0).unwrap().eq(&'{') {
+        Ok(Vec::new())
+    } else {
+        let vec: Result<Vec<MetaNode>, serde_json::Error> = serde_json::from_str(s);
+        match vec {
+            Ok(val) => Ok(val),
+            Err(err) => Err(serde::de::Error::custom(err)),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetaNodeArray {
+    pub metadata: MetadataContainer,
+    pub value: Vec<MetaNode>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetaNodeString {
+    pub metadata: MetadataPrimitive,
+    pub value: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetaNodeNumber {
+    pub metadata: MetadataPrimitive,
+    pub value: serde_json::Number,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetaNodeBool {
+    pub metadata: MetadataPrimitive,
+    pub value: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetaNodeNull {
+    pub metadata: MetadataPrimitive,
+}
 
 /// The result returned from a query
 #[derive(Debug)]

@@ -1,10 +1,14 @@
 //! Working with a Sirix resource.
 
 use super::client::{Message, SirixResponse};
-use super::http::{create_resource, read_resource, resource_exists, resource_history};
+use super::http::{
+    create_resource, diff_resource, get_etag, read_resource, resource_delete, resource_exists,
+    resource_history,
+};
 use super::info::TokenData;
 use super::types::{
-    DbType, History, Json, MetadataType, ReadArgs, RevisionArg, SingleRevision, TwoRevisions, XML,
+    DbType, DiffArgs, History, Json, MetaNode, MetadataType, NodeIdAndEtag, ReadArgs, RevisionArg,
+    SingleRevision, TwoRevisions, XML,
 };
 use super::SirixResult;
 use hyper::http::uri::{Authority, Scheme};
@@ -88,7 +92,7 @@ impl Resource<Json> {
         &self,
         read_args: ReadArgs,
     ) -> SirixResult<SirixResponse<T>> {
-        let params = Resource::<Json>::build_read_params(read_args);
+        let params = build_read_params(read_args);
         match self.auth_channel.clone() {
             Some(watcher) => {
                 let token_data = watcher.borrow().as_ref().unwrap().clone();
@@ -121,10 +125,12 @@ impl Resource<Json> {
         }
     }
 
-    // TODO
-    /*
-    pub async fn read_with_metadata(&self, meta_type: MetadataType, read_args: ReadArgs) {
-        let mut params = Resource::build_read_params(read_args);
+    pub async fn read_with_metadata(
+        &self,
+        meta_type: MetadataType,
+        read_args: ReadArgs,
+    ) -> SirixResult<SirixResponse<MetaNode>> {
+        let mut params = build_read_params(read_args);
         params.push(("withMetadata".to_owned(), meta_type.to_string()));
         match self.auth_channel.clone() {
             Some(watcher) => {
@@ -157,7 +163,103 @@ impl Resource<Json> {
             }
         }
     }
-    */
+
+    // TODO fix return type
+    pub async fn diff(&self, args: DiffArgs) -> SirixResult<SirixResponse<()>> {
+        let mut params: Vec<(String, String)> = Vec::new();
+        match args.node_id {
+            Some(node_id) => params.push(("startNodeKey".to_owned(), node_id.to_string())),
+            None => (),
+        }
+        match args.max_depth {
+            Some(max_depth) => params.push(("maxDepth".to_owned(), max_depth.to_string())),
+            None => (),
+        }
+        match args.first_revision {
+            SingleRevision::Timestamp(revision) => {
+                params.push(("first-revision".to_owned(), revision))
+            }
+            SingleRevision::Number(revision) => {
+                params.push(("first-revision".to_owned(), revision.to_string()))
+            }
+        }
+        match args.second_revision {
+            SingleRevision::Timestamp(revision) => {
+                params.push(("second-revision".to_owned(), revision))
+            }
+            SingleRevision::Number(revision) => {
+                params.push(("second-revision".to_owned(), revision.to_string()))
+            }
+        }
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                diff_resource(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    &self.db_name,
+                    &self.resource_name,
+                    params,
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                diff_resource(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    &self.db_name,
+                    &self.resource_name,
+                    params,
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
+
+    pub async fn delete(
+        &self,
+        node_and_etag: Option<NodeIdAndEtag>,
+    ) -> SirixResult<SirixResponse<()>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                resource_delete(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    node_and_etag,
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                resource_delete(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    node_and_etag,
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
+
+    // TODO
+    // update
+    // query
 }
 
 impl Resource<XML> {
@@ -247,57 +349,90 @@ impl<T> Resource<T> {
         }
     }
 
-    fn build_read_params(read_args: ReadArgs) -> Vec<(String, String)> {
-        let mut params: Vec<(String, String)> = Vec::new();
-        match read_args.node_id {
-            Some(node_id) => {
-                params.push(("nodeId".to_owned(), node_id.to_string()));
+    pub async fn etag(&self, node_id: u128) -> SirixResult<SirixResponse<String>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                get_etag(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    node_id,
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
             }
-            None => (),
-        };
-        match read_args.max_level {
-            Some(max_level) => {
-                params.push(("maxLevel".to_owned(), max_level.to_string()));
+            None => {
+                get_etag(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    node_id,
+                    None,
+                    self.channel.clone(),
+                )
+                .await
             }
-            None => (),
-        };
-        match read_args.top_level_limit {
-            Some(top_level_limit) => {
-                params.push(("nextTopLevelNodes".to_owned(), top_level_limit.to_string()));
-            }
-            None => (),
-        };
-        match read_args.top_level_skip_last_node {
-            Some(top_level_skip_last_node) => {
-                params.push((
-                    "lastTopLevelNodeKey".to_owned(),
-                    top_level_skip_last_node.to_string(),
-                ));
-            }
-            None => (),
-        };
-        match read_args.revision {
-            RevisionArg::SingleRevision(revision) => match revision {
-                SingleRevision::Number(revision) => {
-                    params.push(("revision".to_owned(), revision.to_string()));
-                }
-                SingleRevision::Timestamp(revision) => {
-                    params.push(("revision-timestamp".to_owned(), revision.to_string()));
-                }
-            },
-            RevisionArg::TwoRevisions(revisions) => {
-                match revisions {
-                    TwoRevisions::Number(first_revision, second_revision) => {
-                        params.push(("start-revision".to_owned(), first_revision.to_string()));
-                        params.push(("end-revision".to_owned(), second_revision.to_string()));
-                    }
-                    TwoRevisions::Timestamp(first_revision, second_revision) => {
-                        params.push(("start-revision-timestamp".to_owned(), first_revision));
-                        params.push(("end-revision-timestamp".to_owned(), second_revision));
-                    }
-                };
-            }
-        };
-        return params;
+        }
     }
+}
+
+fn build_read_params(read_args: ReadArgs) -> Vec<(String, String)> {
+    let mut params: Vec<(String, String)> = Vec::new();
+    match read_args.node_id {
+        Some(node_id) => {
+            params.push(("nodeId".to_owned(), node_id.to_string()));
+        }
+        None => (),
+    };
+    match read_args.max_level {
+        Some(max_level) => {
+            params.push(("maxLevel".to_owned(), max_level.to_string()));
+        }
+        None => (),
+    };
+    match read_args.top_level_limit {
+        Some(top_level_limit) => {
+            params.push(("nextTopLevelNodes".to_owned(), top_level_limit.to_string()));
+        }
+        None => (),
+    };
+    match read_args.top_level_skip_last_node {
+        Some(top_level_skip_last_node) => {
+            params.push((
+                "lastTopLevelNodeKey".to_owned(),
+                top_level_skip_last_node.to_string(),
+            ));
+        }
+        None => (),
+    };
+    match read_args.revision {
+        RevisionArg::SingleRevision(revision) => match revision {
+            SingleRevision::Number(revision) => {
+                params.push(("revision".to_owned(), revision.to_string()));
+            }
+            SingleRevision::Timestamp(revision) => {
+                params.push(("revision-timestamp".to_owned(), revision.to_string()));
+            }
+        },
+        RevisionArg::TwoRevisions(revisions) => {
+            match revisions {
+                TwoRevisions::Number(first_revision, second_revision) => {
+                    params.push(("start-revision".to_owned(), first_revision.to_string()));
+                    params.push(("end-revision".to_owned(), second_revision.to_string()));
+                }
+                TwoRevisions::Timestamp(first_revision, second_revision) => {
+                    params.push(("start-revision-timestamp".to_owned(), first_revision));
+                    params.push(("end-revision-timestamp".to_owned(), second_revision));
+                }
+            };
+        }
+    };
+    return params;
 }

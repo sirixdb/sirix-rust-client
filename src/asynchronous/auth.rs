@@ -152,7 +152,10 @@ pub async fn auth(
         )
         .await;
     });
-    watch_rx.changed().await.unwrap();
+    tokio::select! {
+        _ = watch_rx.changed() => {},
+        _ = sleep(Duration::from_secs(5)) => {}
+    };
     return Ok((watch_rx, kill_switch));
 }
 

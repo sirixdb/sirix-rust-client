@@ -134,7 +134,7 @@ pub async fn auth(
     let username = username.to_owned();
     let password = password.to_owned();
 
-    let (watch_tx, watch_rx) = watch::channel::<Option<TokenData>>(None);
+    let (watch_tx, mut watch_rx) = watch::channel::<Option<TokenData>>(None);
     let kill_switch = Arc::new(Notify::new());
     let kill_switch_receiver = kill_switch.clone();
     tokio::spawn(async move {
@@ -152,6 +152,7 @@ pub async fn auth(
         )
         .await;
     });
+    watch_rx.changed().await.unwrap();
     return Ok((watch_rx, kill_switch));
 }
 
@@ -221,7 +222,6 @@ mod tests {
         spawn_client(hyper::Client::new(), receiver);
         // initiate auth coroutine
         let (watch_rx, kill_switch) = auth("admin", "admin", url, sender).await.unwrap();
-        tokio::time::sleep(Duration::from_millis(10)).await;
         assert_eq!(
             *watch_rx.borrow().as_ref().unwrap(),
             test_mocks::get_token_data()

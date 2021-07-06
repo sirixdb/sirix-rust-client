@@ -9,6 +9,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: setup SirixDB server
+      run: bash ./test.sh
     - name: Build crate
       run: cargo build --all-features --verbose
     - name: Run tests

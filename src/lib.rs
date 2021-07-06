@@ -1,17 +1,14 @@
 //! The `sirix-rust-client` allows Rust applications to interact with SirixDB.
 
-mod auth;
-mod client;
-mod database;
-mod error;
-mod http;
-mod info;
-mod mock;
-mod resource;
-mod sirix;
-mod types;
+#[cfg(feature = "async")]
+pub mod asynchronous;
 
-pub use error::SirixResult;
+#[cfg(feature = "sync")]
+pub mod synchronous;
+
+pub mod info;
+pub mod mock;
+pub mod types;
 
 #[cfg(test)]
 mod tests {}

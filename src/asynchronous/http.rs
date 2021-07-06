@@ -1,8 +1,8 @@
 //! This module handles the HTTP interface to a running SirixDB server.
 
+use super::super::types::*;
 use super::client::{request_impl, request_impl_fire_no_response, Message, SirixResponse};
 use super::error::SirixResult;
-use super::types::*;
 // use bytes::Bytes;
 // use futures_core::Stream;
 use hyper::http::uri::{Authority, PathAndQuery, Scheme};
@@ -51,7 +51,7 @@ pub async fn global_info_with_resources(
     authority: Authority,
     authorization: Option<&str>,
     channel: Sender<Message>,
-) -> SirixResult<SirixResponse<InfoResultsWithResources>> {
+) -> SirixResult<SirixResponse<InfoResultsWithResourcesContainer>> {
     let mut header_map = HeaderMap::new();
     match authorization {
         Some(authorization) => {
@@ -246,7 +246,7 @@ pub async fn resource_exists(
         scheme,
         authority,
         PathAndQuery::from_str(&format!("/{}/{}", db_name, name)).unwrap(),
-        Method::DELETE,
+        Method::HEAD,
         header_map,
         Body::empty(),
     )
@@ -364,7 +364,7 @@ pub async fn resource_history<T: DeserializeOwned>(
         scheme,
         authority,
         PathAndQuery::from_str(&format!("/{}/{}/history", db_name, name)).unwrap(),
-        Method::PUT,
+        Method::GET,
         header_map,
         Body::empty(),
     )

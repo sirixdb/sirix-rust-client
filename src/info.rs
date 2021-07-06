@@ -1,7 +1,7 @@
 //! This module contains types for holding token information and the various node types
 
-use serde::{de, Deserialize, Deserializer, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use std::{fmt, io, str::FromStr};
 
 /// A specific connection token
@@ -9,7 +9,7 @@ use std::{fmt, io, str::FromStr};
 #[cfg_attr(test, derive(Serialize, std::cmp::PartialEq))]
 pub struct TokenData {
     pub access_token: String,
-    pub expires_at: u64,
+    //pub expires_at: u64,
     pub expires_in: u64,
     #[serde(rename = "not-before-policy")]
     pub not_before_policy: u64,

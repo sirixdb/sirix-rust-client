@@ -1,14 +1,14 @@
 //! Working with a Sirix resource.
 
+use super::super::info::TokenData;
+use super::super::types::{
+    DbType, DiffArgs, History, Json, MetaNode, MetadataType, NodeIdAndEtag, ReadArgs, RevisionArg,
+    SingleRevision, TwoRevisions, XML,
+};
 use super::client::{Message, SirixResponse};
 use super::http::{
     create_resource, diff_resource, get_etag, read_resource, resource_delete, resource_exists,
     resource_history,
-};
-use super::info::TokenData;
-use super::types::{
-    DbType, DiffArgs, History, Json, MetaNode, MetadataType, NodeIdAndEtag, ReadArgs, RevisionArg,
-    SingleRevision, TwoRevisions, XML,
 };
 use super::SirixResult;
 use hyper::http::uri::{Authority, Scheme};

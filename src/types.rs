@@ -55,6 +55,12 @@ pub struct InfoResults(Vec<InfoResult>);
 #[derive(Debug, Default, Deserialize)]
 pub struct InfoResultsWithResources(Vec<InfoResultWithResources>);
 
+/// A full list for the global info request, with resources
+#[derive(Debug, Default, Deserialize)]
+pub struct InfoResultsWithResourcesContainer {
+    databases: InfoResultsWithResources,
+}
+
 #[derive(Debug, Default, Serialize)]
 pub struct Query {
     #[serde(rename = "startResultSeqIndex")]

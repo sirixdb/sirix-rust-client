@@ -14,6 +14,7 @@ use tokio::task::JoinHandle;
 
 pub type ResultResponse = Result<Response<Body>, Error>;
 
+#[derive(Debug)]
 pub struct SirixResponse<T> {
     pub status: StatusCode,
     pub headers: HeaderMap<HeaderValue>,

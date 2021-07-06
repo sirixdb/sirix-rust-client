@@ -1,10 +1,10 @@
 //! Working with a Sirix database.
 
+use super::super::info::TokenData;
+use super::super::types::{DbInfo, DbType, Json, XML};
 use super::client::{Message, SirixResponse};
 use super::http::{create_database, delete_database, get_database_info};
-use super::info::TokenData;
 use super::resource::Resource;
-use super::types::{DbInfo, DbType, Json, XML};
 use super::SirixResult;
 use hyper::http::uri::{Authority, Scheme};
 use tokio::sync::mpsc::Sender;

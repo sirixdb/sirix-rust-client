@@ -1,6 +1,6 @@
 //! This module handles authentication with the SirixDB server
 
-use super::info::{TokenData, TokenPostData};
+use super::super::info::{TokenData, TokenPostData};
 use super::{client::request_impl, client::Message, error::SirixError};
 use hyper::http::uri::{Authority, PathAndQuery, Scheme};
 use hyper::{header::HeaderValue, http::uri::InvalidUri, Body, HeaderMap, Method, Uri};
@@ -157,8 +157,8 @@ pub async fn auth(
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::mock::test_mocks;
     use super::super::client::spawn_client;
-    use super::super::mock::test_mocks;
     use super::*;
     use hyper::http::uri::Uri;
     use mockito;

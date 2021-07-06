@@ -1,9 +1,9 @@
 //! This module contains the entrypoint struct for interacting with SirixDB
 
+use super::super::info;
+use super::super::types::{InfoResults, InfoResultsWithResourcesContainer};
 use super::client::{Message, SirixResponse};
 use super::http::{delete_all, global_info, global_info_with_resources};
-use super::info;
-use super::types::{InfoResults, InfoResultsWithResources};
 use super::SirixResult;
 use hyper::http::uri::{Authority, Scheme, Uri};
 use tokio::sync::mpsc::Sender;
@@ -18,7 +18,7 @@ pub struct Sirix {
     /// the message channel for sending HTTP requests
     channel: Sender<Message>,
     /// the channel containing authentication data
-    auth_channel: Option<Receiver<Option<info::TokenData>>>,    
+    auth_channel: Option<Receiver<Option<info::TokenData>>>,
 }
 
 impl Sirix {
@@ -65,7 +65,7 @@ impl Sirix {
 
     pub async fn info_with_resources(
         &self,
-    ) -> SirixResult<SirixResponse<InfoResultsWithResources>> {
+    ) -> SirixResult<SirixResponse<InfoResultsWithResourcesContainer>> {
         match self.auth_channel.clone() {
             Some(watcher) => {
                 let token_data = watcher.borrow().as_ref().unwrap().clone();

@@ -25,3 +25,21 @@ mod asynchronous {
         }
     }
 }
+
+#[cfg(test)]
+#[cfg(feature = "sync")]
+mod synchronous {
+    use sirix_rust_client::synchronous::{auth::auth, sirix::Sirix};
+    #[test]
+    fn sirix_info_with_resources() {
+        let url = "http://localhost:9443";
+        let agent = ureq::agent();
+
+        let lock = auth(agent.clone(), url, "admin", "admin");
+        let sirix = Sirix::new(url.to_string(), agent.clone(), Some(lock));
+        let result = sirix.info_with_resources();
+        assert!(result.is_ok());
+        let databases = result.unwrap().body.databases;
+        assert!(databases.len() == 0);
+    }
+}

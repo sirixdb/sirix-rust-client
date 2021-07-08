@@ -1,7 +1,7 @@
 //! Working with a Sirix database.
 
 use super::super::info::TokenData;
-use super::super::types::{DbInfo, DbType, Json, XML};
+use super::super::types::{DbInfo, DbType, Json, Xml};
 use super::client::{Message, SirixResponse};
 use super::http::{create_database, delete_database, get_database_info};
 use super::resource::Resource;
@@ -11,7 +11,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::sync::watch::Receiver;
 
 ///  Struct for manipulating a resource
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Database<T> {
     _t: T,
     /// The name of the database this resource belongs to.
@@ -123,12 +123,12 @@ impl Database<Json> {
     ) -> Self {
         Self {
             _t: Json,
-            db_name: db_name,
+            db_name,
             db_type: DbType::Json(Json),
-            scheme: scheme,
-            authority: authority,
-            channel: channel,
-            auth_channel: auth_channel,
+            scheme,
+            authority,
+            channel,
+            auth_channel,
         }
     }
 
@@ -146,7 +146,7 @@ impl Database<Json> {
     }
 }
 
-impl Database<XML> {
+impl Database<Xml> {
     pub fn new(
         db_name: String,
         scheme: Scheme,
@@ -155,20 +155,20 @@ impl Database<XML> {
         auth_channel: Option<Receiver<Option<TokenData>>>,
     ) -> Self {
         Self {
-            _t: XML,
-            db_name: db_name,
-            db_type: DbType::XML(XML),
-            scheme: scheme,
-            authority: authority,
-            channel: channel,
-            auth_channel: auth_channel,
+            _t: Xml,
+            db_name,
+            db_type: DbType::XML(Xml),
+            scheme,
+            authority,
+            channel,
+            auth_channel,
         }
     }
 
     /// a helper function to create a Resource struct corresponding
     /// to a resource within the database this Database struct represents
-    pub fn resource(&self, name: String) -> Resource<XML> {
-        Resource::<XML>::new(
+    pub fn resource(&self, name: String) -> Resource<Xml> {
+        Resource::<Xml>::new(
             self.db_name.clone(),
             name,
             self.scheme.clone(),

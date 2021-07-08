@@ -1,3 +1,5 @@
+use crate::types::InfoResultsWithResourcesContainer;
+
 use super::client::request;
 use super::{super::types::*, client::SirixResponse, error::SirixResult};
 use serde::de::DeserializeOwned;
@@ -11,7 +13,7 @@ pub fn global_info(
     let req = match authorization {
         Some(authorization) => agent
             .get(base_url)
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("accept", "application/json"),
         None => agent.get(base_url).set("accept", "application/json"),
     };
@@ -22,11 +24,11 @@ pub fn global_info_with_resources(
     agent: ureq::Agent,
     authorization: Option<&str>,
     base_url: &str,
-) -> SirixResult<SirixResponse<InfoResults>> {
+) -> SirixResult<SirixResponse<InfoResultsWithResourcesContainer>> {
     let req = match authorization {
         Some(authorization) => agent
             .get(&format!("{}?withResources=true", base_url))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("accept", "application/json"),
         None => agent
             .get(&format!("{}?withResources=true", base_url))
@@ -41,7 +43,9 @@ pub fn delete_all(
     base_url: &str,
 ) -> SirixResult<SirixResponse<()>> {
     let req = match authorization {
-        Some(authorization) => agent.delete(base_url).set("authorization", authorization),
+        Some(authorization) => agent
+            .delete(base_url)
+            .set("authorization", &format!("Bearer {}", authorization)),
         None => agent.delete(base_url),
     };
     request(req, None)
@@ -57,7 +61,7 @@ pub fn create_database(
     let req = match authorization {
         Some(authorization) => agent
             .put(&format!("{}/{}", base_url, db_name))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("content-type", &db_type.to_string()),
         None => agent
             .put(&format!("{}/{}", base_url, db_name))
@@ -75,7 +79,7 @@ pub fn get_database_info(
     let req = match authorization {
         Some(authorization) => agent
             .get(&format!("{}/{}", base_url, db_name))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("accept", "application/json"),
         None => agent
             .get(&format!("{}/{}", base_url, db_name))
@@ -93,7 +97,7 @@ pub fn delete_database(
     let req = match authorization {
         Some(authorization) => agent
             .delete(&format!("{}/{}", base_url, db_name))
-            .set("authorization", authorization),
+            .set("authorization", &format!("Bearer {}", authorization)),
         None => agent.delete(&format!("{}/{}", base_url, db_name)),
     };
     request(req, None)
@@ -110,7 +114,7 @@ pub fn resource_exists(
     let req = match authorization {
         Some(authorization) => agent
             .head(&format!("{}/{}/{}", base_url, db_name, name))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("content-type", &db_type.to_string()),
         None => agent
             .head(&format!("{}/{}/{}", base_url, db_name, name))
@@ -131,7 +135,7 @@ pub fn create_resource<T: DeserializeOwned>(
     let req = match authorization {
         Some(authorization) => agent
             .put(&format!("{}/{}/{}", base_url, db_name, name))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("content-type", &db_type.to_string()),
         None => agent
             .put(&format!("{}/{}/{}", base_url, db_name, name))
@@ -153,7 +157,7 @@ pub fn read_resource<T: DeserializeOwned>(
         Some(authorization) => {
             let mut req = agent
                 .get(&format!("{}/{}/{}", base_url, db_name, name))
-                .set("authorization", authorization)
+                .set("authorization", &format!("Bearer {}", authorization))
                 .set("accept", &db_type.to_string());
             params.iter().for_each(|param| {
                 req = req.clone().query(&param.0, &param.1);
@@ -184,7 +188,7 @@ pub fn resource_history<T: DeserializeOwned>(
     let req = match authorization {
         Some(authorization) => agent
             .get(&format!("{}/{}/{}/history", base_url, db_name, name))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("content-type", &db_type.to_string()),
         None => agent
             .get(&format!("{}/{}/{}/history", base_url, db_name, name))
@@ -205,7 +209,7 @@ pub fn diff_resource<T: DeserializeOwned>(
         Some(authorization) => {
             let mut req = agent
                 .get(&format!("{}/{}/{}", base_url, db_name, name))
-                .set("authorization", authorization);
+                .set("authorization", &format!("Bearer {}", authorization));
             params.iter().for_each(|param| {
                 req = req.clone().query(&param.0, &param.1);
             });
@@ -229,7 +233,9 @@ pub fn post_query<T: DeserializeOwned>(
     query: &Query,
 ) -> SirixResult<SirixResponse<T>> {
     let req = match authorization {
-        Some(authorization) => agent.post(base_url).set("authorization", authorization),
+        Some(authorization) => agent
+            .post(base_url)
+            .set("authorization", &format!("Bearer {}", authorization)),
         None => agent.post(base_url),
     };
     request(req, Some(&serde_json::to_string(query).unwrap()))
@@ -247,7 +253,7 @@ pub fn get_etag(
     let req = match authorization {
         Some(authorization) => agent
             .head(&format!("{}/{}/{}", base_url, db_name, name))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("accept", &db_type.to_string())
             .query("nodeId", &node_id.to_string()),
         None => agent
@@ -273,7 +279,7 @@ pub fn update_resource<T: DeserializeOwned>(
     let req = match authorization {
         Some(authorization) => agent
             .post(&format!("{}/{}/{}", base_url, db_name, name))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("content-type", &db_type.to_string())
             .set("etag", etag)
             .query("nodeId", &node_id.to_string())
@@ -300,7 +306,7 @@ pub fn resource_delete(
     let req = match authorization {
         Some(authorization) => agent
             .delete(&format!("{}/{}/{}", base_url, db_name, name))
-            .set("authorization", authorization)
+            .set("authorization", &format!("Bearer {}", authorization))
             .set("content-type", &db_type.to_string()),
         None => agent
             .delete(&format!("{}/{}/{}", base_url, db_name, name))

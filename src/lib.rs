@@ -9,6 +9,7 @@ pub mod synchronous;
 pub mod info;
 pub mod mock;
 pub mod types;
+mod utils;
 
 #[cfg(test)]
 mod tests {}

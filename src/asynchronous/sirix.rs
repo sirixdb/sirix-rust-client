@@ -1,15 +1,18 @@
 //! This module contains the entrypoint struct for interacting with SirixDB
 
+use crate::types::{Json, Xml};
+
 use super::super::info;
 use super::super::types::{InfoResults, InfoResultsWithResourcesContainer};
 use super::client::{Message, SirixResponse};
+use super::database::Database;
 use super::http::{delete_all, global_info, global_info_with_resources};
 use super::SirixResult;
 use hyper::http::uri::{Authority, Scheme, Uri};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::watch::Receiver;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Sirix {
     /// the scheme with which to access the SirixDB server
     scheme: Scheme,
@@ -36,6 +39,26 @@ impl Sirix {
             channel: channel,
             auth_channel: auth_channel,
         };
+    }
+
+    pub fn json_database(&self, db_name: String) -> Database<Json> {
+        Database::<Json>::new(
+            db_name,
+            self.scheme.clone(),
+            self.authority.clone(),
+            self.channel.clone(),
+            self.auth_channel.clone(),
+        )
+    }
+
+    pub fn xml_database(&self, db_name: String) -> Database<Xml> {
+        Database::<Xml>::new(
+            db_name,
+            self.scheme.clone(),
+            self.authority.clone(),
+            self.channel.clone(),
+            self.auth_channel.clone(),
+        )
     }
 
     pub async fn info(&self) -> SirixResult<SirixResponse<InfoResults>> {

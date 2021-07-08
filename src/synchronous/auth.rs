@@ -104,6 +104,16 @@ pub fn auth(
     spawn(move || {
         begin_authentication_loop(agent, cloned_lock, &base_url, &username, &password);
     });
+    for _ in 0..200 {
+        let local_lock = lock.clone();
+        let l = local_lock.read().unwrap();
+        match *l {
+            Some(_) => {
+                break;
+            }
+            None => sleep(Duration::from_millis(25)),
+        }
+    }
     return lock;
 }
 

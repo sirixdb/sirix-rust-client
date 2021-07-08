@@ -52,13 +52,13 @@ pub struct InfoResultWithResources {
 pub struct InfoResults(Vec<InfoResult>);
 
 /// A full list for the global info request, with resources
-#[derive(Debug, Default, Deserialize)]
-pub struct InfoResultsWithResources(Vec<InfoResultWithResources>);
+//#[derive(Debug, Default, Deserialize)]
+pub type InfoResultsWithResources = Vec<InfoResultWithResources>;
 
 /// A full list for the global info request, with resources
 #[derive(Debug, Default, Deserialize)]
 pub struct InfoResultsWithResourcesContainer {
-    databases: InfoResultsWithResources,
+    pub databases: InfoResultsWithResources,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -92,10 +92,10 @@ pub enum TwoRevisions {
 
 pub struct ReadArgs {
     pub node_id: Option<u128>,
-    pub revision: RevisionArg,
+    pub revision: Option<RevisionArg>,
     pub max_level: Option<u64>,
-    pub top_level_limit: Option<u128>,
-    pub top_level_skip_last_node: Option<u128>,
+    pub top_level_limit: Option<u64>,
+    pub top_level_skip_last_node: Option<u64>,
 }
 
 pub struct DiffArgs {
@@ -250,7 +250,7 @@ impl fmt::Display for Insert {
 }
 
 #[derive(Debug, Clone)]
-pub struct XML;
+pub struct Xml;
 #[derive(Debug, Clone)]
 pub struct Json;
 
@@ -258,7 +258,7 @@ pub struct Json;
 #[derive(Debug, Clone)]
 pub enum DbType {
     Json(Json),
-    XML(XML),
+    XML(Xml),
 }
 
 impl fmt::Display for DbType {

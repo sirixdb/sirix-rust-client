@@ -58,7 +58,7 @@ impl Resource<Json> {
         }
     }
 
-    pub async fn history(&self) -> SirixResult<SirixResponse<History>> {
+    pub async fn history_raw<U: DeserializeOwned>(&self) -> SirixResult<SirixResponse<U>> {
         match self.auth_channel.clone() {
             Some(watcher) => {
                 let token_data = watcher.borrow().as_ref().unwrap().clone();
@@ -87,6 +87,10 @@ impl Resource<Json> {
                 .await
             }
         }
+    }
+
+    pub async fn history(&self) -> SirixResult<SirixResponse<History>> {
+        self.history_raw().await
     }
 
     // TODO fix return type
@@ -344,11 +348,11 @@ impl<T> Resource<T> {
         }
     }
 
-    pub async fn read_with_metadata(
+    pub async fn read_with_metadata_raw<U: DeserializeOwned>(
         &self,
         meta_type: MetadataType,
         read_args: ReadArgs,
-    ) -> SirixResult<SirixResponse<MetaNode>> {
+    ) -> SirixResult<SirixResponse<U>> {
         let mut params = build_read_params(read_args);
         params.push(("withMetadata".to_owned(), meta_type.to_string()));
         match self.auth_channel.clone() {
@@ -381,5 +385,13 @@ impl<T> Resource<T> {
                 .await
             }
         }
+    }
+
+    pub async fn read_with_metadata(
+        &self,
+        meta_type: MetadataType,
+        read_args: ReadArgs,
+    ) -> SirixResult<SirixResponse<MetaNode>> {
+        self.read_with_metadata_raw(meta_type, read_args).await
     }
 }

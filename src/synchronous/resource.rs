@@ -135,11 +135,11 @@ impl<T> Resource<T> {
         }
     }
 
-    pub fn read_with_metadata(
+    pub fn read_with_metadata_raw<U: DeserializeOwned>(
         &self,
         meta_type: MetadataType,
         read_args: ReadArgs,
-    ) -> SirixResult<SirixResponse<MetaNode>> {
+    ) -> SirixResult<SirixResponse<U>> {
         let mut params = build_read_params(read_args);
         params.push(("withMetadata".to_owned(), meta_type.to_string()));
         match self.auth_lock.clone() {
@@ -166,6 +166,14 @@ impl<T> Resource<T> {
             ),
         }
     }
+
+    pub fn read_with_metadata(
+        &self,
+        meta_type: MetadataType,
+        read_args: ReadArgs,
+    ) -> SirixResult<SirixResponse<MetaNode>> {
+        self.read_with_metadata_raw(meta_type, read_args)
+    }
 }
 
 impl Resource<Json> {
@@ -187,7 +195,7 @@ impl Resource<Json> {
         }
     }
 
-    pub fn history(&self) -> SirixResult<SirixResponse<History>> {
+    pub fn history_raw<U: DeserializeOwned>(&self) -> SirixResult<SirixResponse<U>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
@@ -209,6 +217,10 @@ impl Resource<Json> {
                 &self.resource_name,
             ),
         }
+    }
+
+    pub fn history(&self) -> SirixResult<SirixResponse<History>> {
+        self.history_raw()
     }
 
     // TODO fix return type

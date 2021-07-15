@@ -1,6 +1,7 @@
 use super::error::{SirixError, SirixResult};
 use serde::de::DeserializeOwned;
 use serde_json;
+use std::io::Read;
 use ureq;
 
 #[derive(Debug)]
@@ -36,7 +37,10 @@ pub fn request<T: DeserializeOwned>(
     }
 }
 
-pub fn request_string(req: ureq::Request, body: Option<&str>) -> SirixResult<SirixResponse<String>> {
+pub fn request_string(
+    req: ureq::Request,
+    body: Option<&str>,
+) -> SirixResult<SirixResponse<String>> {
     let response = match body {
         Some(data) => req.send_string(data),
         None => req.call(),
@@ -46,8 +50,10 @@ pub fn request_string(req: ureq::Request, body: Option<&str>) -> SirixResult<Sir
         Ok(resp) => {
             let status = resp.status();
             let etag = resp.header("etag").map(String::from);
+            let mut buf: Vec<u8> = vec![];
+            resp.into_reader().read_to_end(&mut buf).unwrap();
             Ok(SirixResponse {
-                body: resp.into_string().unwrap(),
+                body: String::from_utf8_lossy(&buf).into_owned(),
                 status,
                 etag,
             })

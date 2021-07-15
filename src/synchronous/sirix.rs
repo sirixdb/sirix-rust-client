@@ -5,7 +5,10 @@ use super::super::types::{InfoResults, InfoResultsWithResourcesContainer};
 use super::client::SirixResponse;
 use super::database::Database;
 use super::error::SirixResult;
-use super::http::{delete_all, global_info, global_info_with_resources};
+use super::http::{
+    delete_all, global_info, global_info_string, global_info_with_resources,
+    global_info_with_resources_string,
+};
 use std::{sync::Arc, sync::RwLock};
 
 #[derive(Debug, Clone)]
@@ -63,6 +66,20 @@ impl Sirix {
         }
     }
 
+    pub fn info_string(&self) -> SirixResult<SirixResponse<String>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                global_info_string(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                )
+            }
+            None => global_info_string(self.agent.clone(), None, &self.base_uri),
+        }
+    }
+
     pub fn info_with_resources(
         &self,
     ) -> SirixResult<SirixResponse<InfoResultsWithResourcesContainer>> {
@@ -76,6 +93,20 @@ impl Sirix {
                 )
             }
             None => global_info_with_resources(self.agent.clone(), None, &self.base_uri),
+        }
+    }
+
+    pub fn info_with_resources_string(&self) -> SirixResult<SirixResponse<String>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                global_info_with_resources_string(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                )
+            }
+            None => global_info_with_resources_string(self.agent.clone(), None, &self.base_uri),
         }
     }
 

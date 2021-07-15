@@ -7,9 +7,7 @@ use super::super::types::{DbType, Json, Xml};
 use super::super::utils::build_read_params;
 use super::client::SirixResponse;
 use super::error::SirixResult;
-use super::http::{
-    create_resource, diff_resource, get_etag, read_resource, resource_exists, resource_history,
-};
+use super::http::{create_resource, diff_resource, get_etag, read_resource, read_resource_string, resource_exists, resource_history, resource_history_string};
 use std::{sync::Arc, sync::RwLock};
 
 ///  Struct for manipulating a resource
@@ -135,6 +133,65 @@ impl<T> Resource<T> {
         }
     }
 
+    pub fn read_string(&self, read_args: ReadArgs) -> SirixResult<SirixResponse<String>> {
+        let params = build_read_params(read_args);
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                read_resource_string(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    params,
+                )
+            }
+            None => read_resource_string(
+                self.agent.clone(),
+                None,
+                &self.base_uri,
+                &self.db_name,
+                self.db_type.clone(),
+                &self.resource_name,
+                params,
+            ),
+        }
+    }
+
+    pub fn read_with_metadata_string(
+        &self,
+        meta_type: MetadataType,
+        read_args: ReadArgs,
+    ) -> SirixResult<SirixResponse<String>> {
+        let mut params = build_read_params(read_args);
+        params.push(("withMetadata".to_owned(), meta_type.to_string()));
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                read_resource_string(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    params,
+                )
+            }
+            None => read_resource_string(
+                self.agent.clone(),
+                None,
+                &self.base_uri,
+                &self.db_name,
+                self.db_type.clone(),
+                &self.resource_name,
+                params,
+            ),
+        }
+    }
+
     pub fn read_with_metadata_raw<U: DeserializeOwned>(
         &self,
         meta_type: MetadataType,
@@ -192,6 +249,30 @@ impl Resource<Json> {
             base_uri,
             agent,
             auth_lock,
+        }
+    }
+
+    pub fn history_raw_string(&self) -> SirixResult<SirixResponse<String>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                resource_history_string(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                )
+            }
+            None => resource_history_string(
+                self.agent.clone(),
+                None,
+                &self.base_uri,
+                &self.db_name,
+                self.db_type.clone(),
+                &self.resource_name,
+            ),
         }
     }
 

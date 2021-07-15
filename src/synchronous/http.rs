@@ -1,3 +1,4 @@
+use crate::synchronous::client::request_string;
 use crate::types::InfoResultsWithResourcesContainer;
 
 use super::client::request;
@@ -20,6 +21,21 @@ pub fn global_info(
     request(req, None)
 }
 
+pub fn global_info_string(
+    agent: ureq::Agent,
+    authorization: Option<&str>,
+    base_url: &str,
+) -> SirixResult<SirixResponse<String>> {
+    let req = match authorization {
+        Some(authorization) => agent
+            .get(base_url)
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("accept", "application/json"),
+        None => agent.get(base_url).set("accept", "application/json"),
+    };
+    request_string(req, None)
+}
+
 pub fn global_info_with_resources(
     agent: ureq::Agent,
     authorization: Option<&str>,
@@ -35,6 +51,23 @@ pub fn global_info_with_resources(
             .set("accept", "application/json"),
     };
     request(req, None)
+}
+
+pub fn global_info_with_resources_string(
+    agent: ureq::Agent,
+    authorization: Option<&str>,
+    base_url: &str,
+) -> SirixResult<SirixResponse<String>> {
+    let req = match authorization {
+        Some(authorization) => agent
+            .get(&format!("{}?withResources=true", base_url))
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("accept", "application/json"),
+        None => agent
+            .get(&format!("{}?withResources=true", base_url))
+            .set("accept", "application/json"),
+    };
+    request_string(req, None)
 }
 
 pub fn delete_all(
@@ -86,6 +119,24 @@ pub fn get_database_info(
             .set("accept", "application/json"),
     };
     request(req, None)
+}
+
+pub fn get_database_info_string(
+    agent: ureq::Agent,
+    authorization: Option<&str>,
+    base_url: &str,
+    db_name: &str,
+) -> SirixResult<SirixResponse<String>> {
+    let req = match authorization {
+        Some(authorization) => agent
+            .get(&format!("{}/{}", base_url, db_name))
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("accept", "application/json"),
+        None => agent
+            .get(&format!("{}/{}", base_url, db_name))
+            .set("accept", "application/json"),
+    };
+    request_string(req, None)
 }
 
 pub fn delete_database(
@@ -177,6 +228,39 @@ pub fn read_resource<T: DeserializeOwned>(
     request(req, None)
 }
 
+pub fn read_resource_string(
+    agent: ureq::Agent,
+    authorization: Option<&str>,
+    base_url: &str,
+    db_name: &str,
+    db_type: DbType,
+    name: &str,
+    params: Vec<(String, String)>,
+) -> SirixResult<SirixResponse<String>> {
+    let req = match authorization {
+        Some(authorization) => {
+            let mut req = agent
+                .get(&format!("{}/{}/{}", base_url, db_name, name))
+                .set("authorization", &format!("Bearer {}", authorization))
+                .set("accept", &db_type.to_string());
+            params.iter().for_each(|param| {
+                req = req.clone().query(&param.0, &param.1);
+            });
+            req
+        }
+        None => {
+            let mut req = agent
+                .get(&format!("{}/{}/{}", base_url, db_name, name))
+                .set("accept", &db_type.to_string());
+            params.iter().for_each(|param| {
+                req = req.clone().query(&param.0, &param.1);
+            });
+            req
+        }
+    };
+    request_string(req, None)
+}
+
 pub fn resource_history<T: DeserializeOwned>(
     agent: ureq::Agent,
     authorization: Option<&str>,
@@ -195,6 +279,26 @@ pub fn resource_history<T: DeserializeOwned>(
             .set("content-type", &db_type.to_string()),
     };
     request(req, None)
+}
+
+pub fn resource_history_string(
+    agent: ureq::Agent,
+    authorization: Option<&str>,
+    base_url: &str,
+    db_name: &str,
+    db_type: DbType,
+    name: &str,
+) -> SirixResult<SirixResponse<String>> {
+    let req = match authorization {
+        Some(authorization) => agent
+            .get(&format!("{}/{}/{}/history", base_url, db_name, name))
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("content-type", &db_type.to_string()),
+        None => agent
+            .get(&format!("{}/{}/{}/history", base_url, db_name, name))
+            .set("content-type", &db_type.to_string()),
+    };
+    request_string(req, None)
 }
 
 pub fn diff_resource<T: DeserializeOwned>(

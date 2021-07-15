@@ -2,7 +2,7 @@ use super::super::info;
 use super::super::types::{DbInfo, DbType, Json, Xml};
 use super::client::SirixResponse;
 use super::error::SirixResult;
-use super::http::{create_database, delete_database, get_database_info};
+use super::http::{create_database, delete_database, get_database_info, get_database_info_string};
 use super::resource::Resource;
 use std::{sync::Arc, sync::RwLock};
 
@@ -34,6 +34,23 @@ impl<T> Database<T> {
                 )
             }
             None => get_database_info(self.agent.clone(), None, &self.base_uri, &self.db_name),
+        }
+    }
+
+    pub fn info_string(&self) -> SirixResult<SirixResponse<String>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                get_database_info_string(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &self.db_name,
+                )
+            }
+            None => {
+                get_database_info_string(self.agent.clone(), None, &self.base_uri, &self.db_name)
+            }
         }
     }
 

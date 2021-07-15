@@ -9,6 +9,7 @@ use super::http::{
     delete_all, global_info, global_info_string, global_info_with_resources,
     global_info_with_resources_string,
 };
+use serde::de::DeserializeOwned;
 use std::{sync::Arc, sync::RwLock};
 
 #[derive(Debug, Clone)]
@@ -53,6 +54,10 @@ impl Sirix {
     }
 
     pub fn info(&self) -> SirixResult<SirixResponse<InfoResults>> {
+        self.info_raw()
+    }
+
+    pub fn info_raw<U: DeserializeOwned>(&self) -> SirixResult<SirixResponse<U>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
@@ -83,6 +88,10 @@ impl Sirix {
     pub fn info_with_resources(
         &self,
     ) -> SirixResult<SirixResponse<InfoResultsWithResourcesContainer>> {
+        self.info_with_resources_raw()
+    }
+
+    pub fn info_with_resources_raw<U: DeserializeOwned>(&self) -> SirixResult<SirixResponse<U>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();

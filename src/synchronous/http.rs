@@ -1,16 +1,15 @@
 use crate::synchronous::client::request_string;
-use crate::types::InfoResultsWithResourcesContainer;
 
 use super::client::request;
 use super::{super::types::*, client::SirixResponse, error::SirixResult};
 use serde::de::DeserializeOwned;
 use ureq;
 
-pub fn global_info(
+pub fn global_info<T: DeserializeOwned>(
     agent: ureq::Agent,
     authorization: Option<&str>,
     base_url: &str,
-) -> SirixResult<SirixResponse<InfoResults>> {
+) -> SirixResult<SirixResponse<T>> {
     let req = match authorization {
         Some(authorization) => agent
             .get(base_url)
@@ -36,11 +35,11 @@ pub fn global_info_string(
     request_string(req, None)
 }
 
-pub fn global_info_with_resources(
+pub fn global_info_with_resources<T: DeserializeOwned>(
     agent: ureq::Agent,
     authorization: Option<&str>,
     base_url: &str,
-) -> SirixResult<SirixResponse<InfoResultsWithResourcesContainer>> {
+) -> SirixResult<SirixResponse<T>> {
     let req = match authorization {
         Some(authorization) => agent
             .get(&format!("{}?withResources=true", base_url))
@@ -103,12 +102,12 @@ pub fn create_database(
     request(req, None)
 }
 
-pub fn get_database_info(
+pub fn get_database_info<T: DeserializeOwned>(
     agent: ureq::Agent,
     authorization: Option<&str>,
     base_url: &str,
     db_name: &str,
-) -> SirixResult<SirixResponse<DbInfo>> {
+) -> SirixResult<SirixResponse<T>> {
     let req = match authorization {
         Some(authorization) => agent
             .get(&format!("{}/{}", base_url, db_name))
@@ -193,6 +192,27 @@ pub fn create_resource<T: DeserializeOwned>(
             .set("content-type", &db_type.to_string()),
     };
     request(req, Some(initial_data))
+}
+
+pub fn create_resource_string(
+    agent: ureq::Agent,
+    authorization: Option<&str>,
+    base_url: &str,
+    db_name: &str,
+    db_type: DbType,
+    name: &str,
+    initial_data: &str,
+) -> SirixResult<SirixResponse<String>> {
+    let req = match authorization {
+        Some(authorization) => agent
+            .put(&format!("{}/{}/{}", base_url, db_name, name))
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("content-type", &db_type.to_string()),
+        None => agent
+            .put(&format!("{}/{}/{}", base_url, db_name, name))
+            .set("content-type", &db_type.to_string()),
+    };
+    request_string(req, Some(initial_data))
 }
 
 pub fn read_resource<T: DeserializeOwned>(

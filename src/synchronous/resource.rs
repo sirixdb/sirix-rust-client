@@ -1,4 +1,5 @@
 use serde::de::DeserializeOwned;
+use serde_json::Value;
 
 use crate::types::{DiffArgs, History, MetaNode, MetadataType, ReadArgs, SingleRevision};
 
@@ -7,7 +8,10 @@ use super::super::types::{DbType, Json, Xml};
 use super::super::utils::build_read_params;
 use super::client::SirixResponse;
 use super::error::SirixResult;
-use super::http::{create_resource, diff_resource, get_etag, read_resource, read_resource_string, resource_exists, resource_history, resource_history_string};
+use super::http::{
+    create_resource, create_resource_string, diff_resource, get_etag, read_resource,
+    read_resource_string, resource_exists, resource_history, resource_history_string,
+};
 use std::{sync::Arc, sync::RwLock};
 
 ///  Struct for manipulating a resource
@@ -29,7 +33,36 @@ pub struct Resource<T> {
 }
 
 impl<T> Resource<T> {
-    pub fn create(&self, initial_data: String) -> SirixResult<SirixResponse<String>> {
+    pub fn create_string(&self, initial_data: String) -> SirixResult<SirixResponse<String>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                create_resource_string(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    &initial_data,
+                )
+            }
+            None => create_resource_string(
+                self.agent.clone(),
+                None,
+                &self.base_uri,
+                &self.db_name,
+                self.db_type.clone(),
+                &self.resource_name,
+                &initial_data,
+            ),
+        }
+    }
+
+    pub fn create_raw<U: DeserializeOwned>(
+        &self,
+        initial_data: String,
+    ) -> SirixResult<SirixResponse<U>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
@@ -53,6 +86,10 @@ impl<T> Resource<T> {
                 &initial_data,
             ),
         }
+    }
+
+    pub fn create(&self, initial_data: String) -> SirixResult<SirixResponse<Value>> {
+        self.create_raw(initial_data)
     }
 
     pub fn exists(&self) -> SirixResult<SirixResponse<bool>> {
@@ -106,7 +143,17 @@ impl<T> Resource<T> {
         return response;
     }
 
-    pub fn read<U: DeserializeOwned>(&self, read_args: ReadArgs) -> SirixResult<SirixResponse<U>> {
+    pub fn read<U: DeserializeOwned>(
+        &self,
+        read_args: ReadArgs,
+    ) -> SirixResult<SirixResponse<Value>> {
+        self.read_raw(read_args)
+    }
+
+    pub fn read_raw<U: DeserializeOwned>(
+        &self,
+        read_args: ReadArgs,
+    ) -> SirixResult<SirixResponse<U>> {
         let params = build_read_params(read_args);
         match self.auth_lock.clone() {
             Some(lock) => {
@@ -252,7 +299,7 @@ impl Resource<Json> {
         }
     }
 
-    pub fn history_raw_string(&self) -> SirixResult<SirixResponse<String>> {
+    pub fn history_string(&self) -> SirixResult<SirixResponse<String>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();

@@ -1,3 +1,5 @@
+use serde::de::DeserializeOwned;
+
 use super::super::info;
 use super::super::types::{DbInfo, DbType, Json, Xml};
 use super::client::SirixResponse;
@@ -23,6 +25,10 @@ pub struct Database<T> {
 
 impl<T> Database<T> {
     pub fn info(&self) -> SirixResult<SirixResponse<DbInfo>> {
+        self.info_raw()
+    }
+
+    pub fn info_raw<U: DeserializeOwned>(&self) -> SirixResult<SirixResponse<U>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();

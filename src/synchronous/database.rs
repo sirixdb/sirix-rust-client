@@ -52,11 +52,16 @@ impl<T> Database<T> {
                     Some(&token_data.access_token),
                     &self.base_uri,
                     &self.db_name,
+                    &self.db_type,
                 )
             }
-            None => {
-                get_database_info_string(self.agent.clone(), None, &self.base_uri, &self.db_name)
-            }
+            None => get_database_info_string(
+                self.agent.clone(),
+                None,
+                &self.base_uri,
+                &self.db_name,
+                &self.db_type,
+            ),
         }
     }
 

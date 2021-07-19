@@ -71,7 +71,7 @@ impl Sirix {
         }
     }
 
-    pub fn info_string(&self) -> SirixResult<SirixResponse<String>> {
+    fn _info_string(&self, xml: bool) -> SirixResult<SirixResponse<String>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
@@ -79,10 +79,19 @@ impl Sirix {
                     self.agent.clone(),
                     Some(&token_data.access_token),
                     &self.base_uri,
+                    xml,
                 )
             }
-            None => global_info_string(self.agent.clone(), None, &self.base_uri),
+            None => global_info_string(self.agent.clone(), None, &self.base_uri, false),
         }
+    }
+
+    pub fn info_string_json(&self) -> SirixResult<SirixResponse<String>> {
+        self._info_string(false)
+    }
+
+    pub fn info_string_xml(&self) -> SirixResult<SirixResponse<String>> {
+        self._info_string(true)
     }
 
     pub fn info_with_resources(
@@ -105,7 +114,7 @@ impl Sirix {
         }
     }
 
-    pub fn info_with_resources_string(&self) -> SirixResult<SirixResponse<String>> {
+    fn _info_with_resources_string(&self, xml: bool) -> SirixResult<SirixResponse<String>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
@@ -113,10 +122,21 @@ impl Sirix {
                     self.agent.clone(),
                     Some(&token_data.access_token),
                     &self.base_uri,
+                    xml,
                 )
             }
-            None => global_info_with_resources_string(self.agent.clone(), None, &self.base_uri),
+            None => {
+                global_info_with_resources_string(self.agent.clone(), None, &self.base_uri, xml)
+            }
         }
+    }
+
+    pub fn _info_with_resources_xml(&self) -> SirixResult<SirixResponse<String>> {
+        self._info_with_resources_string(true)
+    }
+
+    pub fn _info_with_resources_json(&self) -> SirixResult<SirixResponse<String>> {
+        self._info_with_resources_string(false)
     }
 
     pub fn delete_all(&self) -> SirixResult<SirixResponse<()>> {

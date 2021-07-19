@@ -1,5 +1,4 @@
 use crate::synchronous::client::request_string;
-use crate::types::DbType;
 
 use super::client::request;
 use super::{super::types::*, client::SirixResponse, error::SirixResult};
@@ -25,17 +24,13 @@ pub fn global_info_string(
     agent: ureq::Agent,
     authorization: Option<&str>,
     base_url: &str,
-    xml: bool,
 ) -> SirixResult<SirixResponse<String>> {
-    let mut req = match authorization {
+    let req = match authorization {
         Some(authorization) => agent
             .get(base_url)
-            .set("authorization", &format!("Bearer {}", authorization)),
-        None => agent.get(base_url),
-    };
-    req = match xml {
-        true => req.set("accept", "application/xml"),
-        false => req.set("accept", "application/json"),
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("accept", "application/json"),
+        None => agent.get(base_url).set("accept", "application/json"),
     };
     request_string(req, None)
 }
@@ -61,17 +56,15 @@ pub fn global_info_with_resources_string(
     agent: ureq::Agent,
     authorization: Option<&str>,
     base_url: &str,
-    xml: bool,
 ) -> SirixResult<SirixResponse<String>> {
-    let mut req = match authorization {
+    let req = match authorization {
         Some(authorization) => agent
             .get(&format!("{}?withResources=true", base_url))
-            .set("authorization", &format!("Bearer {}", authorization)),
-        None => agent.get(&format!("{}?withResources=true", base_url)),
-    };
-    req = match xml {
-        true => req.set("accept", "application/xml"),
-        false => req.set("accept", "application/json"),
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("accept", "application/json"),
+        None => agent
+            .get(&format!("{}?withResources=true", base_url))
+            .set("accept", "application/json"),
     };
     request_string(req, None)
 }
@@ -132,17 +125,15 @@ pub fn get_database_info_string(
     authorization: Option<&str>,
     base_url: &str,
     db_name: &str,
-    db_type: &DbType,
 ) -> SirixResult<SirixResponse<String>> {
-    let mut req = match authorization {
+    let req = match authorization {
         Some(authorization) => agent
             .get(&format!("{}/{}", base_url, db_name))
-            .set("authorization", &format!("Bearer {}", authorization)),
-        None => agent.get(&format!("{}/{}", base_url, db_name)),
-    };
-    req = match db_type {
-        DbType::XML(_) => req.set("accept", "application/xml"),
-        DbType::Json(_) => req.set("accept", "application/json"),
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("accept", "application/json"),
+        None => agent
+            .get(&format!("{}/{}", base_url, db_name))
+            .set("accept", "application/json"),
     };
     request_string(req, None)
 }

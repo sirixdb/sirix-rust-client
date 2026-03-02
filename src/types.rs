@@ -70,6 +70,20 @@ pub struct Query {
     query: String,
 }
 
+impl Query {
+    pub fn new(
+        query: String,
+        start_result_seq_index: Option<u128>,
+        end_result_seq_index: Option<u128>,
+    ) -> Self {
+        Self {
+            query,
+            start_result_seq_index,
+            end_result_seq_index,
+        }
+    }
+}
+
 pub struct NodeIdAndEtag {
     pub node_id: u128,
     pub etag: String,

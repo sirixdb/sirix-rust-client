@@ -1,13 +1,13 @@
 use crate::types::{Json, Xml};
 
 use super::super::info;
-use super::super::types::{InfoResults, InfoResultsWithResourcesContainer};
+use super::super::types::{InfoResults, InfoResultsWithResourcesContainer, Query};
 use super::client::SirixResponse;
 use super::database::Database;
 use super::error::SirixResult;
 use super::http::{
     delete_all, global_info, global_info_string, global_info_with_resources,
-    global_info_with_resources_string,
+    global_info_with_resources_string, post_query,
 };
 use serde::de::DeserializeOwned;
 use std::{sync::Arc, sync::RwLock};
@@ -130,6 +130,21 @@ impl Sirix {
                 )
             }
             None => delete_all(self.agent.clone(), None, &self.base_uri),
+        }
+    }
+
+    pub fn query<U: DeserializeOwned>(&self, query: Query) -> SirixResult<SirixResponse<U>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                post_query(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &query,
+                )
+            }
+            None => post_query(self.agent.clone(), None, &self.base_uri, &query),
         }
     }
 }

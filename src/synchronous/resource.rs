@@ -1,7 +1,9 @@
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::types::{DiffArgs, History, MetaNode, MetadataType, ReadArgs, SingleRevision};
+use crate::types::{
+    DiffArgs, History, Insert, MetaNode, MetadataType, NodeIdAndEtag, ReadArgs, SingleRevision,
+};
 
 use super::super::info;
 use super::super::types::{DbType, Json, Xml};
@@ -10,7 +12,8 @@ use super::client::SirixResponse;
 use super::error::SirixResult;
 use super::http::{
     create_resource, create_resource_string, diff_resource, get_etag, read_resource,
-    read_resource_string, resource_exists, resource_history, resource_history_string,
+    read_resource_string, resource_delete, resource_exists, resource_history,
+    resource_history_string, update_resource,
 };
 use std::{sync::Arc, sync::RwLock};
 
@@ -278,26 +281,6 @@ impl<T> Resource<T> {
     ) -> SirixResult<SirixResponse<MetaNode>> {
         self.read_with_metadata_raw(meta_type, read_args)
     }
-}
-
-impl Resource<Json> {
-    pub fn new(
-        db_name: String,
-        resource_name: String,
-        base_uri: String,
-        agent: ureq::Agent,
-        auth_lock: Option<Arc<RwLock<Option<info::TokenData>>>>,
-    ) -> Self {
-        Self {
-            _t: Json,
-            db_name,
-            db_type: DbType::Json(Json),
-            resource_name,
-            base_uri,
-            agent,
-            auth_lock,
-        }
-    }
 
     pub fn history_string(&self) -> SirixResult<SirixResponse<String>> {
         match self.auth_lock.clone() {
@@ -351,7 +334,6 @@ impl Resource<Json> {
         self.history_raw()
     }
 
-    // TODO fix return type
     pub fn diff(&self, args: DiffArgs) -> SirixResult<SirixResponse<()>> {
         let mut params: Vec<(String, String)> = Vec::new();
         match args.node_id {
@@ -398,6 +380,93 @@ impl Resource<Json> {
                 &self.resource_name,
                 params,
             ),
+        }
+    }
+
+    pub fn delete(
+        &self,
+        node_and_etag: Option<NodeIdAndEtag>,
+    ) -> SirixResult<SirixResponse<()>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                resource_delete(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    node_and_etag,
+                )
+            }
+            None => resource_delete(
+                self.agent.clone(),
+                None,
+                &self.base_uri,
+                &self.db_name,
+                self.db_type.clone(),
+                &self.resource_name,
+                node_and_etag,
+            ),
+        }
+    }
+
+    pub fn update<U: DeserializeOwned>(
+        &self,
+        node_id: u128,
+        insert: Insert,
+        data: String,
+        etag: String,
+    ) -> SirixResult<SirixResponse<U>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                update_resource(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &self.db_name,
+                    self.db_type.clone(),
+                    &self.resource_name,
+                    node_id,
+                    insert,
+                    &data,
+                    &etag,
+                )
+            }
+            None => update_resource(
+                self.agent.clone(),
+                None,
+                &self.base_uri,
+                &self.db_name,
+                self.db_type.clone(),
+                &self.resource_name,
+                node_id,
+                insert,
+                &data,
+                &etag,
+            ),
+        }
+    }
+}
+
+impl Resource<Json> {
+    pub fn new(
+        db_name: String,
+        resource_name: String,
+        base_uri: String,
+        agent: ureq::Agent,
+        auth_lock: Option<Arc<RwLock<Option<info::TokenData>>>>,
+    ) -> Self {
+        Self {
+            _t: Json,
+            db_name,
+            db_type: DbType::Json(Json),
+            resource_name,
+            base_uri,
+            agent,
+            auth_lock,
         }
     }
 }

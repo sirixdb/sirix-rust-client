@@ -36,6 +36,7 @@ pub struct DeleteDiff {
 #[derive(Debug, Deserialize)]
 pub struct InfoResult {
     pub name: String,
+    #[serde(rename = "type")]
     pub info_type: String,
 }
 
@@ -43,6 +44,7 @@ pub struct InfoResult {
 #[derive(Debug, Deserialize)]
 pub struct InfoResultWithResources {
     pub name: String,
+    #[serde(rename = "type")]
     pub info_type: String,
     pub resources: Resources,
 }
@@ -411,7 +413,7 @@ mod tests {
 
     #[test]
     fn info_result_deserializes_from_json() {
-        let json = r#"{"name": "testdb", "info_type": "json"}"#;
+        let json = r#"{"name": "testdb", "type": "json"}"#;
         let result: InfoResult = serde_json::from_str(json).unwrap();
         assert_eq!(result.name, "testdb");
         assert_eq!(result.info_type, "json");
@@ -420,7 +422,7 @@ mod tests {
     #[test]
     fn info_results_with_resources_container_deserializes() {
         let json =
-            r#"{"databases": [{"name": "db1", "info_type": "json", "resources": ["r1"]}]}"#;
+            r#"{"databases": [{"name": "db1", "type": "json", "resources": ["r1"]}]}"#;
         let result: InfoResultsWithResourcesContainer = serde_json::from_str(json).unwrap();
         assert_eq!(result.databases.len(), 1);
         assert_eq!(result.databases[0].name, "db1");
@@ -465,7 +467,7 @@ mod tests {
 
     #[test]
     fn info_result_with_resources_deserializes() {
-        let json = r#"{"name": "mydb", "info_type": "xml", "resources": ["a", "b"]}"#;
+        let json = r#"{"name": "mydb", "type": "xml", "resources": ["a", "b"]}"#;
         let result: InfoResultWithResources = serde_json::from_str(json).unwrap();
         assert_eq!(result.name, "mydb");
         assert_eq!(result.info_type, "xml");

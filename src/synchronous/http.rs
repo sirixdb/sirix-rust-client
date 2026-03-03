@@ -359,8 +359,9 @@ pub fn post_query<T: DeserializeOwned>(
     let req = match authorization {
         Some(authorization) => agent
             .post(base_url)
-            .set("authorization", &format!("Bearer {}", authorization)),
-        None => agent.post(base_url),
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("content-type", "application/json"),
+        None => agent.post(base_url).set("content-type", "application/json"),
     };
     request(req, Some(&serde_json::to_string(query).unwrap()))
 }

@@ -418,7 +418,7 @@ mod synchronous {
             None,
         );
         let result: Result<_, _> = sirix.query::<Value>(query);
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "Query failed: {:?}", result.err());
 
         db.delete().unwrap();
     }

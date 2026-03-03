@@ -634,6 +634,7 @@ pub async fn post_query<T: DeserializeOwned>(
 ) -> SirixResult<SirixResponse<T>> {
     // TODO automatically serialize diffs
     let mut header_map = HeaderMap::new();
+    header_map.append("content-type", HeaderValue::from_static("application/json"));
     match authorization {
         Some(authorization) => {
             header_map.append(

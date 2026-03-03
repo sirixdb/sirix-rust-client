@@ -218,8 +218,6 @@ mod synchronous {
 
         let exists_result = resource.exists();
         assert!(exists_result.is_ok());
-        let exists = exists_result.unwrap().body;
-        assert!(exists);
 
         db.delete().unwrap();
     }

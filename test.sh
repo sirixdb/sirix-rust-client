@@ -62,5 +62,33 @@ if [ $elapsed -ge $timeout ]; then
   exit 1
 fi
 
-echo "Running tests..."
-cargo test --all-features --verbose
+echo "Verifying SirixDB authentication works..."
+timeout=60
+elapsed=0
+while [ $elapsed -lt $timeout ]; do
+  http_code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:9443/token \
+    -H 'Content-Type: application/json' \
+    -d '{"username":"admin","password":"admin","grant_type":"password"}')
+  if [ "$http_code" = "200" ]; then
+    echo "SirixDB authentication verified!"
+    break
+  fi
+  echo "Auth not ready yet (HTTP $http_code, ${elapsed}s elapsed), waiting..."
+  sleep 3
+  elapsed=$((elapsed + 3))
+done
+
+if [ $elapsed -ge $timeout ]; then
+  echo "ERROR: SirixDB authentication did not work within ${timeout}s"
+  echo "Keycloak logs:"
+  $COMPOSE -f "$COMPOSE_FILE" logs keycloak
+  echo "SirixDB logs:"
+  $COMPOSE -f "$COMPOSE_FILE" logs server
+  exit 1
+fi
+
+echo "Running unit tests..."
+cargo test --all-features --verbose --lib
+
+echo "Running integration tests (serial)..."
+cargo test --all-features --verbose --test sirix -- --test-threads=1

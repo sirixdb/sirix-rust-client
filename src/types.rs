@@ -7,36 +7,36 @@ use std::fmt;
 /// A single commit
 #[derive(Debug, Deserialize)]
 pub struct Commit {
-    revision_timestamp: String,
-    revision: usize,
-    author: String,
-    commit_message: String,
+    pub revision_timestamp: String,
+    pub revision: usize,
+    pub author: String,
+    pub commit_message: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct History(Vec<Commit>);
+pub struct History(pub Vec<Commit>);
 
 type Resources = Vec<String>;
 
 /// database info struct
 #[derive(Debug, Deserialize)]
 pub struct DbInfo {
-    resources: Resources, // should this be full-on resources?
+    pub resources: Resources,
 }
 
 /// A diff from a delete operation
 #[derive(Debug)]
 pub struct DeleteDiff {
-    node_key: usize,
-    dewey_id: String,
-    depth: u64,
+    pub node_key: usize,
+    pub dewey_id: String,
+    pub depth: u64,
 }
 
 /// A result from the global info request
 #[derive(Debug, Deserialize)]
 pub struct InfoResult {
-    name: String,
-    info_type: String,
+    pub name: String,
+    pub info_type: String,
 }
 
 /// A result from the global info request, resources included
@@ -49,7 +49,7 @@ pub struct InfoResultWithResources {
 
 /// A full list for the global info request, without resources
 #[derive(Debug, Default, Deserialize)]
-pub struct InfoResults(Vec<InfoResult>);
+pub struct InfoResults(pub Vec<InfoResult>);
 
 /// A full list for the global info request, with resources
 //#[derive(Debug, Default, Deserialize)]
@@ -122,29 +122,29 @@ pub struct DiffArgs {
 /// A diff from an insert operation
 #[derive(Debug)]
 pub struct InsertDiff {
-    node_key: u128,
-    insert_position_node_key: usize,
-    insert_position: String,
-    dewey_id: String,
-    depth: u64,
-    insert_type: String,
-    data: String,
+    pub node_key: u128,
+    pub insert_position_node_key: usize,
+    pub insert_position: String,
+    pub dewey_id: String,
+    pub depth: u64,
+    pub insert_type: String,
+    pub data: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct MetadataPrimitive {
-    node_key: usize,
-    hash: isize,
-    node_type: NodeTypePrimitive,
+    pub node_key: usize,
+    pub hash: isize,
+    pub node_type: NodeTypePrimitive,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct MetadataContainer {
-    node_key: usize,
-    hash: isize,
-    node_type: NodeTypeContainer,
-    descendant_count: usize,
-    child_count: usize,
+    pub node_key: usize,
+    pub hash: isize,
+    pub node_type: NodeTypeContainer,
+    pub descendant_count: usize,
+    pub child_count: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -221,24 +221,24 @@ pub struct MetaNodeNull {
 /// The result returned from a query
 #[derive(Debug)]
 pub struct QueryResult {
-    revision_number: usize,
-    revision_timestamp: String,
-    revision: Revision,
+    pub revision_number: usize,
+    pub revision_timestamp: String,
+    pub revision: Revision,
 }
 
 /// A diff from a replace operation
 #[derive(Debug)]
 pub struct ReplaceDiff {
-    node_key: usize,
-    replace_type: String,
-    data: String,
+    pub node_key: usize,
+    pub replace_type: String,
+    pub data: String,
 }
 
 /// A timestamped revision ID
 #[derive(Debug)]
 pub struct Revision {
-    timestamp: String,
-    revision: usize,
+    pub timestamp: String,
+    pub revision: usize,
 }
 
 /// All possible options for a resource update

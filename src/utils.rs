@@ -1,6 +1,8 @@
+#[cfg(any(feature = "sync", feature = "async"))]
 use super::types::{ReadArgs, RevisionArg, SingleRevision, TwoRevisions};
 
-pub fn build_read_params(read_args: ReadArgs) -> Vec<(String, String)> {
+#[cfg(any(feature = "sync", feature = "async"))]
+pub(crate) fn build_read_params(read_args: ReadArgs) -> Vec<(String, String)> {
     let mut params: Vec<(String, String)> = Vec::new();
     match read_args.node_id {
         Some(node_id) => {

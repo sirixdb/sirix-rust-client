@@ -131,3 +131,128 @@ impl FromStr for NodeTypeContainer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn node_type_primitive_display_all_variants() {
+        assert_eq!(NodeTypePrimitive::BooleanValue.to_string(), "BOOLEAN_VALUE");
+        assert_eq!(NodeTypePrimitive::NullValue.to_string(), "NULL_VALUE");
+        assert_eq!(NodeTypePrimitive::NumberValue.to_string(), "NUMBER_VALUE");
+        assert_eq!(
+            NodeTypePrimitive::ObjectBooleanValue.to_string(),
+            "OBJECT_BOOLEAN_VALUE"
+        );
+        assert_eq!(NodeTypePrimitive::ObjectKey.to_string(), "OBJECT_KEY");
+        assert_eq!(
+            NodeTypePrimitive::ObjectNullValue.to_string(),
+            "OBJECT_NULL_VALUE"
+        );
+        assert_eq!(
+            NodeTypePrimitive::ObjectStringValue.to_string(),
+            "OBJECT_STRING_VALUE"
+        );
+        assert_eq!(NodeTypePrimitive::StringValue.to_string(), "STRING_VALUE");
+    }
+
+    #[test]
+    fn node_type_primitive_from_str_roundtrips() {
+        let cases = vec![
+            ("BOOLEAN_VALUE", "BOOLEAN_VALUE"),
+            ("NULL_VALUE", "NULL_VALUE"),
+            ("NUMBER_VALUE", "NUMBER_VALUE"),
+            ("OBJECT_BOOLEAN_VALUE", "OBJECT_BOOLEAN_VALUE"),
+            ("OBJECT_KEY", "OBJECT_KEY"),
+            ("OBJECT_NULL_VALUE", "OBJECT_NULL_VALUE"),
+            ("OBJECT_STRING_VALUE", "OBJECT_STRING_VALUE"),
+            ("STRING_VALUE", "STRING_VALUE"),
+        ];
+        for (input, expected) in cases {
+            let parsed: NodeTypePrimitive = input.parse().unwrap();
+            assert_eq!(parsed.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn node_type_primitive_from_str_rejects_invalid() {
+        let result: Result<NodeTypePrimitive, _> = "INVALID_TYPE".parse();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn node_type_container_display_both_variants() {
+        assert_eq!(NodeTypeContainer::Array.to_string(), "ARRAY");
+        assert_eq!(NodeTypeContainer::Object.to_string(), "OBJECT");
+    }
+
+    #[test]
+    fn node_type_container_from_str_roundtrips() {
+        let array: NodeTypeContainer = "ARRAY".parse().unwrap();
+        assert_eq!(array.to_string(), "ARRAY");
+        let object: NodeTypeContainer = "OBJECT".parse().unwrap();
+        assert_eq!(object.to_string(), "OBJECT");
+    }
+
+    #[test]
+    fn node_type_container_from_str_rejects_invalid() {
+        let result: Result<NodeTypeContainer, _> = "INVALID".parse();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn token_data_deserializes_all_fields() {
+        let json = r#"{
+            "access_token": "abc123",
+            "expires_in": 300,
+            "not-before-policy": 0,
+            "refresh_expires_in": 1800,
+            "refresh_token": "refresh123",
+            "scope": "profile email",
+            "session_state": "sess123",
+            "token_type": "bearer"
+        }"#;
+        let token: TokenData = serde_json::from_str(json).unwrap();
+        assert_eq!(token.access_token, "abc123");
+        assert_eq!(token.expires_in, 300);
+        assert_eq!(token.not_before_policy, 0);
+        assert_eq!(token.refresh_expires_in, 1800);
+        assert_eq!(token.refresh_token, "refresh123");
+        assert_eq!(token.scope, "profile email");
+        assert_eq!(token.session_state, "sess123");
+        assert_eq!(token.token_type, "bearer");
+    }
+
+    #[test]
+    fn token_post_data_serializes_correctly() {
+        let data = TokenPostData {
+            username: "admin".to_string(),
+            password: "pass".to_string(),
+            grant_type: "password".to_string(),
+        };
+        let json = serde_json::to_string(&data).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["username"], "admin");
+        assert_eq!(v["password"], "pass");
+        assert_eq!(v["grant_type"], "password");
+    }
+
+    #[test]
+    fn token_data_serialize_deserialize_roundtrip() {
+        let json = r#"{
+            "access_token": "tok",
+            "expires_in": 300,
+            "not-before-policy": 0,
+            "refresh_expires_in": 1800,
+            "refresh_token": "ref",
+            "scope": "profile",
+            "session_state": "sess",
+            "token_type": "bearer"
+        }"#;
+        let token: TokenData = serde_json::from_str(json).unwrap();
+        let serialized = serde_json::to_string(&token).unwrap();
+        let deserialized: TokenData = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(token, deserialized);
+    }
+}

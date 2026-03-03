@@ -10,6 +10,13 @@ else
   COMPOSE="docker-compose"
 fi
 
+cleanup() {
+  echo "Stopping and removing containers..."
+  $COMPOSE -f "$COMPOSE_FILE" down -v --remove-orphans 2>/dev/null || true
+}
+
+trap cleanup EXIT
+
 echo "Starting Docker environment..."
 $COMPOSE -f "$COMPOSE_FILE" up -d --build
 
@@ -21,6 +28,7 @@ while [ $elapsed -lt $timeout ]; do
     echo "Keycloak is healthy."
     break
   fi
+  echo "Keycloak not ready yet (${elapsed}s elapsed), waiting..."
   sleep 5
   elapsed=$((elapsed + 5))
 done
@@ -30,6 +38,9 @@ if [ $elapsed -ge $timeout ]; then
   $COMPOSE -f "$COMPOSE_FILE" logs keycloak
   exit 1
 fi
+
+echo "Starting SirixDB server..."
+$COMPOSE -f "$COMPOSE_FILE" up -d server
 
 echo "Waiting for SirixDB to be ready..."
 timeout=120
@@ -50,3 +61,6 @@ if [ $elapsed -ge $timeout ]; then
   $COMPOSE -f "$COMPOSE_FILE" logs server
   exit 1
 fi
+
+echo "Running tests..."
+cargo test --all-features --verbose

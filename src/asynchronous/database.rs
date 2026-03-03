@@ -3,10 +3,11 @@
 use super::super::info::TokenData;
 use super::super::types::{DbInfo, DbType, Json, Xml};
 use super::client::{Message, SirixResponse};
-use super::http::{create_database, delete_database, get_database_info};
+use super::http::{create_database, delete_database, get_database_info, get_database_info_string};
 use super::resource::Resource;
 use super::SirixResult;
 use hyper::http::uri::{Authority, Scheme};
+use serde::de::DeserializeOwned;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::watch::Receiver;
 
@@ -30,6 +31,10 @@ pub struct Database<T> {
 
 impl<T> Database<T> {
     pub async fn info(&self) -> SirixResult<SirixResponse<DbInfo>> {
+        self.info_raw().await
+    }
+
+    pub async fn info_raw<U: DeserializeOwned>(&self) -> SirixResult<SirixResponse<U>> {
         match self.auth_channel.clone() {
             Some(watcher) => {
                 let token_data = watcher.borrow().as_ref().unwrap().clone();
@@ -45,6 +50,33 @@ impl<T> Database<T> {
             }
             None => {
                 get_database_info(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    &self.db_name,
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
+
+    pub async fn info_string(&self) -> SirixResult<SirixResponse<String>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                get_database_info_string(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    &self.db_name,
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                get_database_info_string(
                     self.scheme.clone(),
                     self.authority.clone(),
                     &self.db_name,

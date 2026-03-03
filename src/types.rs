@@ -42,9 +42,9 @@ pub struct InfoResult {
 /// A result from the global info request, resources included
 #[derive(Debug, Deserialize)]
 pub struct InfoResultWithResources {
-    name: String,
-    info_type: String,
-    resources: Resources,
+    pub name: String,
+    pub info_type: String,
+    pub resources: Resources,
 }
 
 /// A full list for the global info request, without resources
@@ -304,5 +304,171 @@ impl fmt::Display for MetadataType {
             KeyAndChild => "nodeKeyAndChildCount",
         };
         write!(f, "{}", db_type)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn insert_child_displays_as_first_child() {
+        assert_eq!(Insert::Child.to_string(), "asFirstChild");
+    }
+
+    #[test]
+    fn insert_left_displays_as_left_sibling() {
+        assert_eq!(Insert::Left.to_string(), "asLeftSibling");
+    }
+
+    #[test]
+    fn insert_right_displays_as_right_sibling() {
+        assert_eq!(Insert::Right.to_string(), "asRightSibling");
+    }
+
+    #[test]
+    fn insert_replace_displays_as_replace() {
+        assert_eq!(Insert::Replace.to_string(), "replace");
+    }
+
+    #[test]
+    fn db_type_json_displays_as_json_content_type() {
+        assert_eq!(DbType::Json(Json).to_string(), "application/json");
+    }
+
+    #[test]
+    fn db_type_xml_displays_as_xml_content_type() {
+        assert_eq!(DbType::XML(Xml).to_string(), "application/xml");
+    }
+
+    #[test]
+    fn metadata_type_all_displays_as_true() {
+        assert_eq!(MetadataType::All.to_string(), "true");
+    }
+
+    #[test]
+    fn metadata_type_key_displays_as_node_key() {
+        assert_eq!(MetadataType::Key.to_string(), "nodeKey");
+    }
+
+    #[test]
+    fn metadata_type_key_and_child_displays_correctly() {
+        assert_eq!(
+            MetadataType::KeyAndChild.to_string(),
+            "nodeKeyAndChildCount"
+        );
+    }
+
+    #[test]
+    fn query_new_sets_all_fields() {
+        let q = Query::new("sdb:diff".to_string(), Some(0), Some(10));
+        assert_eq!(q.query, "sdb:diff");
+        assert_eq!(q.start_result_seq_index, Some(0));
+        assert_eq!(q.end_result_seq_index, Some(10));
+    }
+
+    #[test]
+    fn query_new_without_optional_indices() {
+        let q = Query::new("sdb:diff".to_string(), None, None);
+        assert_eq!(q.query, "sdb:diff");
+        assert_eq!(q.start_result_seq_index, None);
+        assert_eq!(q.end_result_seq_index, None);
+    }
+
+    #[test]
+    fn query_serializes_with_renamed_fields() {
+        let q = Query::new("jn:doc('db','res')".to_string(), Some(0), Some(5));
+        let json = serde_json::to_string(&q).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["query"], "jn:doc('db','res')");
+        assert_eq!(v["startResultSeqIndex"], 0);
+        assert_eq!(v["endResultSeqIndex"], 5);
+    }
+
+    #[test]
+    fn query_serializes_none_indices_as_null() {
+        let q = Query::new("test".to_string(), None, None);
+        let json = serde_json::to_string(&q).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["query"], "test");
+        assert!(v["startResultSeqIndex"].is_null());
+        assert!(v["endResultSeqIndex"].is_null());
+    }
+
+    #[test]
+    fn db_info_deserializes_with_resources() {
+        let json = r#"{"resources": ["res1", "res2"]}"#;
+        let db_info: DbInfo = serde_json::from_str(json).unwrap();
+        assert_eq!(db_info.resources, vec!["res1", "res2"]);
+    }
+
+    #[test]
+    fn db_info_deserializes_empty_resources() {
+        let json = r#"{"resources": []}"#;
+        let db_info: DbInfo = serde_json::from_str(json).unwrap();
+        assert!(db_info.resources.is_empty());
+    }
+
+    #[test]
+    fn info_result_deserializes_from_json() {
+        let json = r#"{"name": "testdb", "info_type": "json"}"#;
+        let result: InfoResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result.name, "testdb");
+        assert_eq!(result.info_type, "json");
+    }
+
+    #[test]
+    fn info_results_with_resources_container_deserializes() {
+        let json =
+            r#"{"databases": [{"name": "db1", "info_type": "json", "resources": ["r1"]}]}"#;
+        let result: InfoResultsWithResourcesContainer = serde_json::from_str(json).unwrap();
+        assert_eq!(result.databases.len(), 1);
+        assert_eq!(result.databases[0].name, "db1");
+        assert_eq!(result.databases[0].resources, vec!["r1"]);
+    }
+
+    #[test]
+    fn info_results_with_resources_container_deserializes_empty() {
+        let json = r#"{"databases": []}"#;
+        let result: InfoResultsWithResourcesContainer = serde_json::from_str(json).unwrap();
+        assert!(result.databases.is_empty());
+    }
+
+    #[test]
+    fn commit_deserializes_from_json() {
+        let json = r#"{"revision_timestamp":"2021-01-01","revision":1,"author":"admin","commit_message":"initial"}"#;
+        let commit: Commit = serde_json::from_str(json).unwrap();
+        assert_eq!(commit.revision_timestamp, "2021-01-01");
+        assert_eq!(commit.revision, 1);
+        assert_eq!(commit.author, "admin");
+        assert_eq!(commit.commit_message, "initial");
+    }
+
+    #[test]
+    fn history_deserializes_from_json() {
+        let json = r#"[{"revision_timestamp":"2021-01-01","revision":1,"author":"admin","commit_message":"initial"}]"#;
+        let history: History = serde_json::from_str(json).unwrap();
+        assert_eq!(history.0.len(), 1);
+    }
+
+    #[test]
+    fn info_results_default_is_empty() {
+        let results = InfoResults::default();
+        assert!(results.0.is_empty());
+    }
+
+    #[test]
+    fn info_results_with_resources_container_default_is_empty() {
+        let results = InfoResultsWithResourcesContainer::default();
+        assert!(results.databases.is_empty());
+    }
+
+    #[test]
+    fn info_result_with_resources_deserializes() {
+        let json = r#"{"name": "mydb", "info_type": "xml", "resources": ["a", "b"]}"#;
+        let result: InfoResultWithResources = serde_json::from_str(json).unwrap();
+        assert_eq!(result.name, "mydb");
+        assert_eq!(result.info_type, "xml");
+        assert_eq!(result.resources, vec!["a", "b"]);
     }
 }

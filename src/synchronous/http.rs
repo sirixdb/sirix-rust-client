@@ -1,6 +1,6 @@
 use crate::synchronous::client::request_string;
 
-use super::client::request;
+use super::client::{request, request_empty};
 use super::{super::types::*, client::SirixResponse, error::SirixResult};
 use serde::de::DeserializeOwned;
 use ureq;
@@ -80,7 +80,7 @@ pub fn delete_all(
             .set("authorization", &format!("Bearer {}", authorization)),
         None => agent.delete(base_url),
     };
-    request(req, None)
+    request_empty(req, None)
 }
 
 pub fn create_database(
@@ -99,7 +99,7 @@ pub fn create_database(
             .put(&format!("{}/{}", base_url, db_name))
             .set("content-type", &db_type.to_string()),
     };
-    request(req, None)
+    request_empty(req, None)
 }
 
 pub fn get_database_info<T: DeserializeOwned>(
@@ -150,7 +150,7 @@ pub fn delete_database(
             .set("authorization", &format!("Bearer {}", authorization)),
         None => agent.delete(&format!("{}/{}", base_url, db_name)),
     };
-    request(req, None)
+    request_empty(req, None)
 }
 
 pub fn resource_exists(
@@ -160,7 +160,7 @@ pub fn resource_exists(
     db_name: &str,
     db_type: DbType,
     name: &str,
-) -> SirixResult<SirixResponse<bool>> {
+) -> SirixResult<SirixResponse<()>> {
     let req = match authorization {
         Some(authorization) => agent
             .head(&format!("{}/{}/{}", base_url, db_name, name))
@@ -170,7 +170,7 @@ pub fn resource_exists(
             .head(&format!("{}/{}/{}", base_url, db_name, name))
             .set("content-type", &db_type.to_string()),
     };
-    request(req, None)
+    request_empty(req, None)
 }
 
 pub fn create_resource<T: DeserializeOwned>(
@@ -321,14 +321,14 @@ pub fn resource_history_string(
     request_string(req, None)
 }
 
-pub fn diff_resource<T: DeserializeOwned>(
+pub fn diff_resource(
     agent: ureq::Agent,
     authorization: Option<&str>,
     base_url: &str,
     db_name: &str,
     name: &str,
     params: Vec<(String, String)>,
-) -> SirixResult<SirixResponse<T>> {
+) -> SirixResult<SirixResponse<()>> {
     let req = match authorization {
         Some(authorization) => {
             let mut req = agent
@@ -347,7 +347,7 @@ pub fn diff_resource<T: DeserializeOwned>(
             req
         }
     };
-    request(req, None)
+    request_empty(req, None)
 }
 
 pub fn post_query<T: DeserializeOwned>(
@@ -385,7 +385,7 @@ pub fn get_etag(
             .set("accept", &db_type.to_string())
             .query("nodeId", &node_id.to_string()),
     };
-    request(req, None)
+    request_empty(req, None)
 }
 
 pub fn update_resource<T: DeserializeOwned>(
@@ -442,7 +442,7 @@ pub fn resource_delete(
             .query("nodeId", &node_id_and_etag.node_id.to_string()),
         None => req,
     };
-    request(req, None)
+    request_empty(req, None)
 }
 
 #[cfg(test)]
@@ -596,9 +596,7 @@ mod tests {
     #[test]
     fn delete_all_sends_delete_to_base_url() {
         let _m = mock("DELETE", "/")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body("null")
+            .with_status(204)
             .create();
 
         let result = delete_all(agent(), None, &base_url());
@@ -609,9 +607,7 @@ mod tests {
     fn delete_all_with_auth_sends_bearer() {
         let _m = mock("DELETE", "/")
             .match_header("authorization", "Bearer del_tok")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body("null")
+            .with_status(204)
             .create();
 
         let result = delete_all(agent(), Some("del_tok"), &base_url());
@@ -625,8 +621,6 @@ mod tests {
         let _m = mock("PUT", "/testdb")
             .match_header("content-type", "application/json")
             .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body("null")
             .create();
 
         let result = create_database(
@@ -644,8 +638,6 @@ mod tests {
         let _m = mock("PUT", "/xmldb")
             .match_header("content-type", "application/xml")
             .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body("null")
             .create();
 
         let result =
@@ -659,8 +651,6 @@ mod tests {
             .match_header("authorization", "Bearer create_tok")
             .match_header("content-type", "application/json")
             .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body("null")
             .create();
 
         let result = create_database(
@@ -738,9 +728,7 @@ mod tests {
     #[test]
     fn delete_database_sends_delete_with_db_name() {
         let _m = mock("DELETE", "/deldb")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body("null")
+            .with_status(204)
             .create();
 
         let result = delete_database(agent(), None, &base_url(), "deldb");
@@ -751,9 +739,7 @@ mod tests {
     fn delete_database_with_auth() {
         let _m = mock("DELETE", "/deldb2")
             .match_header("authorization", "Bearer del_db_tok")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body("null")
+            .with_status(204)
             .create();
 
         let result =
@@ -1085,8 +1071,7 @@ mod tests {
             ("first-revision".to_string(), "1".to_string()),
             ("second-revision".to_string(), "2".to_string()),
         ];
-        let result: SirixResult<SirixResponse<serde_json::Value>> =
-            diff_resource(agent(), None, &base_url(), "ddb", "dres", params);
+        let result = diff_resource(agent(), None, &base_url(), "ddb", "dres", params);
         assert!(result.is_ok());
     }
 
@@ -1099,7 +1084,7 @@ mod tests {
             .with_body(r#"[]"#)
             .create();
 
-        let result: SirixResult<SirixResponse<serde_json::Value>> = diff_resource(
+        let result = diff_resource(
             agent(),
             Some("d_tok"),
             &base_url(),

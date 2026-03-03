@@ -37,6 +37,29 @@ pub fn request<T: DeserializeOwned>(
     }
 }
 
+pub fn request_empty(
+    req: ureq::Request,
+    body: Option<&str>,
+) -> SirixResult<SirixResponse<()>> {
+    let response = match body {
+        Some(data) => req.send_string(data),
+        None => req.call(),
+    };
+
+    match response {
+        Ok(resp) => {
+            let status = resp.status();
+            let etag = resp.header("etag").map(String::from);
+            Ok(SirixResponse {
+                body: (),
+                status,
+                etag,
+            })
+        }
+        Err(err) => Err(SirixError::ConnectionError(err)),
+    }
+}
+
 pub fn request_string(
     req: ureq::Request,
     body: Option<&str>,

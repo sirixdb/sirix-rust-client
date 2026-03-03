@@ -320,7 +320,7 @@ pub async fn resource_exists(
     name: &str,
     authorization: Option<&str>,
     channel: Sender<Message>,
-) -> SirixResult<SirixResponse<bool>> {
+) -> SirixResult<SirixResponse<()>> {
     let mut header_map = HeaderMap::new();
     match authorization {
         Some(authorization) => {
@@ -336,7 +336,7 @@ pub async fn resource_exists(
         HeaderValue::from_str(&db_type.to_string()).unwrap(),
     );
 
-    request_impl(
+    Ok(request_impl_fire_no_response(
         channel,
         scheme,
         authority,
@@ -345,7 +345,7 @@ pub async fn resource_exists(
         header_map,
         Body::empty(),
     )
-    .await
+    .await)
 }
 /// `PUT /<db_name>/<name>`
 ///
@@ -586,7 +586,7 @@ pub async fn resource_history_string(
 /// `GET /<db_name>/<name>/diff`
 ///
 /// Get diffs for the given revisions
-pub async fn diff_resource<T: DeserializeOwned>(
+pub async fn diff_resource(
     scheme: Scheme,
     authority: Authority,
     db_name: &str,
@@ -594,7 +594,7 @@ pub async fn diff_resource<T: DeserializeOwned>(
     params: Vec<(String, String)>,
     authorization: Option<&str>,
     channel: Sender<Message>,
-) -> SirixResult<SirixResponse<T>> {
+) -> SirixResult<SirixResponse<()>> {
     // TODO automatically serialize diffs
     let mut header_map = HeaderMap::new();
     match authorization {
@@ -611,7 +611,7 @@ pub async fn diff_resource<T: DeserializeOwned>(
         .map(|param| param.0.to_owned() + "=" + param.1.as_ref())
         .collect::<Vec<String>>()
         .join("&");
-    request_impl(
+    Ok(request_impl_fire_no_response(
         channel,
         scheme,
         authority,
@@ -620,7 +620,7 @@ pub async fn diff_resource<T: DeserializeOwned>(
         header_map,
         Body::empty(),
     )
-    .await
+    .await)
 }
 /// `POST /`
 ///
@@ -681,7 +681,7 @@ pub async fn get_etag(
         "accept",
         HeaderValue::from_str(&db_type.to_string()).unwrap(),
     );
-    let response: SirixResult<SirixResponse<()>> = request_impl(
+    let response = request_impl_fire_no_response(
         channel,
         scheme,
         authority,
@@ -691,21 +691,18 @@ pub async fn get_etag(
         Body::empty(),
     )
     .await;
-    match response {
-        Ok(response) => Ok(SirixResponse {
-            status: response.status,
-            body: response
-                .headers
-                .clone()
-                .get("etag")
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned(),
-            headers: response.headers,
-        }),
-        Err(err) => Err(err),
-    }
+    Ok(SirixResponse {
+        status: response.status,
+        body: response
+            .headers
+            .clone()
+            .get("etag")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned(),
+        headers: response.headers,
+    })
 }
 /// `POST /<db_name>/<name>`
 ///

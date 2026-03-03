@@ -95,7 +95,7 @@ impl<T> Resource<T> {
         self.create_raw(initial_data)
     }
 
-    pub fn exists(&self) -> SirixResult<SirixResponse<bool>> {
+    pub fn exists(&self) -> SirixResult<SirixResponse<()>> {
         match self.auth_lock.clone() {
             Some(lock) => {
                 let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();

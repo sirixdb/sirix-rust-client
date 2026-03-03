@@ -159,7 +159,7 @@ impl<T> Resource<T> {
         self.create_raw(initial_data).await
     }
 
-    pub async fn exists(&self) -> SirixResult<SirixResponse<bool>> {
+    pub async fn exists(&self) -> SirixResult<SirixResponse<()>> {
         match self.auth_channel.clone() {
             Some(watcher) => {
                 let token_data = watcher.borrow().as_ref().unwrap().clone();

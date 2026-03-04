@@ -65,9 +65,9 @@ pub struct InfoResultsWithResourcesContainer {
 
 #[derive(Debug, Default, Serialize)]
 pub struct Query {
-    #[serde(rename = "startResultSeqIndex")]
+    #[serde(rename = "startResultSeqIndex", skip_serializing_if = "Option::is_none")]
     start_result_seq_index: Option<u128>,
-    #[serde(rename = "endResultSeqIndex")]
+    #[serde(rename = "endResultSeqIndex", skip_serializing_if = "Option::is_none")]
     end_result_seq_index: Option<u128>,
     query: String,
 }

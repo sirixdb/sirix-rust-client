@@ -381,12 +381,12 @@ pub fn get_etag(
 ) -> SirixResult<SirixResponse<()>> {
     let req = match authorization {
         Some(authorization) => agent
-            .get(&format!("{}/{}/{}", base_url, db_name, name))
+            .head(&format!("{}/{}/{}", base_url, db_name, name))
             .set("authorization", &format!("Bearer {}", authorization))
             .set("accept", &db_type.to_string())
             .query("nodeId", &node_id.to_string()),
         None => agent
-            .get(&format!("{}/{}/{}", base_url, db_name, name))
+            .head(&format!("{}/{}/{}", base_url, db_name, name))
             .set("accept", &db_type.to_string())
             .query("nodeId", &node_id.to_string()),
     };

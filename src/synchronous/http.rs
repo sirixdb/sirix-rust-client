@@ -360,14 +360,26 @@ pub fn post_query<T: DeserializeOwned>(
         Some(authorization) => agent
             .post(base_url)
             .set("authorization", &format!("Bearer {}", authorization))
-            .set("content-type", "application/json")
-            .set("accept", "application/json"),
-        None => agent
-            .post(base_url)
-            .set("content-type", "application/json")
-            .set("accept", "application/json"),
+            .set("content-type", "application/json"),
+        None => agent.post(base_url).set("content-type", "application/json"),
     };
     request(req, Some(&serde_json::to_string(query).unwrap()))
+}
+
+pub fn post_query_string(
+    agent: ureq::Agent,
+    authorization: Option<&str>,
+    base_url: &str,
+    query: &Query,
+) -> SirixResult<SirixResponse<String>> {
+    let req = match authorization {
+        Some(authorization) => agent
+            .post(base_url)
+            .set("authorization", &format!("Bearer {}", authorization))
+            .set("content-type", "application/json"),
+        None => agent.post(base_url).set("content-type", "application/json"),
+    };
+    request_string(req, Some(&serde_json::to_string(query).unwrap()))
 }
 
 pub fn get_etag(
@@ -381,16 +393,21 @@ pub fn get_etag(
 ) -> SirixResult<SirixResponse<()>> {
     let req = match authorization {
         Some(authorization) => agent
-            .head(&format!("{}/{}/{}", base_url, db_name, name))
+            .get(&format!("{}/{}/{}", base_url, db_name, name))
             .set("authorization", &format!("Bearer {}", authorization))
             .set("accept", &db_type.to_string())
             .query("nodeId", &node_id.to_string()),
         None => agent
-            .head(&format!("{}/{}/{}", base_url, db_name, name))
+            .get(&format!("{}/{}/{}", base_url, db_name, name))
             .set("accept", &db_type.to_string())
             .query("nodeId", &node_id.to_string()),
     };
-    request_empty(req, None)
+    let result = request_string(req, None)?;
+    Ok(SirixResponse {
+        status: result.status,
+        etag: result.etag,
+        body: (),
+    })
 }
 
 pub fn update_resource<T: DeserializeOwned>(
@@ -1160,8 +1177,9 @@ mod tests {
             "eres",
             42,
         );
-        // HEAD may not produce a parseable body, but the request is correct
-        let _ = result;
+        let resp = result.unwrap();
+        assert_eq!(resp.status, 200);
+        assert_eq!(resp.etag, Some("\"etag_val\"".to_string()));
     }
 
     #[test]
@@ -1170,6 +1188,7 @@ mod tests {
             .match_header("authorization", "Bearer e_tok")
             .match_query(Matcher::UrlEncoded("nodeId".into(), "7".into()))
             .with_status(200)
+            .with_header("etag", "\"auth_etag\"")
             .with_body("null")
             .create();
 
@@ -1182,7 +1201,8 @@ mod tests {
             "eres2",
             7,
         );
-        let _ = result;
+        let resp = result.unwrap();
+        assert_eq!(resp.etag, Some("\"auth_etag\"".to_string()));
     }
 
     // -- update_resource --

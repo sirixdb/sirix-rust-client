@@ -776,12 +776,14 @@ mod tests {
             .match_query(Matcher::UrlEncoded("nodeId".into(), "1".into()))
             .with_status(200)
             .with_header("etag", "\"etag_value\"")
-            .with_body("null")
+            .with_body(r#"{"data":"test"}"#)
             .create();
 
         let res = json_resource("res_etag", false);
         let result = res.etag(1);
-        let _ = result;
+        let resp = result.unwrap();
+        assert_eq!(resp.status, 200);
+        assert_eq!(resp.etag, Some("\"etag_value\"".to_string()));
     }
 
     #[test]
@@ -793,12 +795,14 @@ mod tests {
             .match_header("authorization", expected_auth.as_str())
             .match_query(Matcher::UrlEncoded("nodeId".into(), "5".into()))
             .with_status(200)
-            .with_body("null")
+            .with_header("etag", "\"auth_etag\"")
+            .with_body(r#"{"data":"test"}"#)
             .create();
 
         let res = json_resource("res_etag_auth", true);
         let result = res.etag(5);
-        let _ = result;
+        let resp = result.unwrap();
+        assert_eq!(resp.etag, Some("\"auth_etag\"".to_string()));
     }
 
     // -- history --

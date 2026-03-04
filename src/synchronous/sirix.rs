@@ -7,7 +7,7 @@ use super::database::Database;
 use super::error::SirixResult;
 use super::http::{
     delete_all, global_info, global_info_string, global_info_with_resources,
-    global_info_with_resources_string, post_query,
+    global_info_with_resources_string, post_query, post_query_string,
 };
 use serde::de::DeserializeOwned;
 use std::{sync::Arc, sync::RwLock};
@@ -145,6 +145,21 @@ impl Sirix {
                 )
             }
             None => post_query(self.agent.clone(), None, &self.base_uri, &query),
+        }
+    }
+
+    pub fn query_string(&self, query: Query) -> SirixResult<SirixResponse<String>> {
+        match self.auth_lock.clone() {
+            Some(lock) => {
+                let token_data = Arc::clone(&lock).read().unwrap().clone().unwrap();
+                post_query_string(
+                    self.agent.clone(),
+                    Some(&token_data.access_token),
+                    &self.base_uri,
+                    &query,
+                )
+            }
+            None => post_query_string(self.agent.clone(), None, &self.base_uri, &query),
         }
     }
 }

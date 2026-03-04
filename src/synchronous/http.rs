@@ -360,8 +360,12 @@ pub fn post_query<T: DeserializeOwned>(
         Some(authorization) => agent
             .post(base_url)
             .set("authorization", &format!("Bearer {}", authorization))
-            .set("content-type", "application/json"),
-        None => agent.post(base_url).set("content-type", "application/json"),
+            .set("content-type", "application/json")
+            .set("accept", "application/json"),
+        None => agent
+            .post(base_url)
+            .set("content-type", "application/json")
+            .set("accept", "application/json"),
     };
     request(req, Some(&serde_json::to_string(query).unwrap()))
 }
@@ -377,12 +381,12 @@ pub fn get_etag(
 ) -> SirixResult<SirixResponse<()>> {
     let req = match authorization {
         Some(authorization) => agent
-            .head(&format!("{}/{}/{}", base_url, db_name, name))
+            .get(&format!("{}/{}/{}", base_url, db_name, name))
             .set("authorization", &format!("Bearer {}", authorization))
             .set("accept", &db_type.to_string())
             .query("nodeId", &node_id.to_string()),
         None => agent
-            .head(&format!("{}/{}/{}", base_url, db_name, name))
+            .get(&format!("{}/{}/{}", base_url, db_name, name))
             .set("accept", &db_type.to_string())
             .query("nodeId", &node_id.to_string()),
     };
@@ -1137,8 +1141,8 @@ mod tests {
     // -- get_etag --
 
     #[test]
-    fn get_etag_sends_head_with_node_id() {
-        let _m = mock("HEAD", "/edb/eres")
+    fn get_etag_sends_get_with_node_id() {
+        let _m = mock("GET", "/edb/eres")
             .match_header("accept", "application/json")
             .match_query(Matcher::UrlEncoded("nodeId".into(), "42".into()))
             .with_status(200)
@@ -1162,7 +1166,7 @@ mod tests {
 
     #[test]
     fn get_etag_with_auth() {
-        let _m = mock("HEAD", "/edb2/eres2")
+        let _m = mock("GET", "/edb2/eres2")
             .match_header("authorization", "Bearer e_tok")
             .match_query(Matcher::UrlEncoded("nodeId".into(), "7".into()))
             .with_status(200)

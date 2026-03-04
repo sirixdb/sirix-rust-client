@@ -635,6 +635,7 @@ pub async fn post_query<T: DeserializeOwned>(
     // TODO automatically serialize diffs
     let mut header_map = HeaderMap::new();
     header_map.append("content-type", HeaderValue::from_static("application/json"));
+    header_map.append("accept", HeaderValue::from_static("application/json"));
     match authorization {
         Some(authorization) => {
             header_map.append(
@@ -687,7 +688,7 @@ pub async fn get_etag(
         scheme,
         authority,
         PathAndQuery::from_str(&format!("/{}/{}?nodeId={}", db_name, name, node_id)).unwrap(),
-        Method::HEAD,
+        Method::GET,
         header_map,
         Body::empty(),
     )

@@ -771,7 +771,7 @@ mod tests {
 
     #[test]
     fn etag_without_auth() {
-        let _m = mock("HEAD", "/testdb/res_etag")
+        let _m = mock("GET", "/testdb/res_etag")
             .match_header("accept", "application/json")
             .match_query(Matcher::UrlEncoded("nodeId".into(), "1".into()))
             .with_status(200)
@@ -789,7 +789,7 @@ mod tests {
         let token = test_mocks::get_token_data();
         let expected_auth = format!("Bearer {}", token.access_token);
 
-        let _m = mock("HEAD", "/testdb/res_etag_auth")
+        let _m = mock("GET", "/testdb/res_etag_auth")
             .match_header("authorization", expected_auth.as_str())
             .match_query(Matcher::UrlEncoded("nodeId".into(), "5".into()))
             .with_status(200)

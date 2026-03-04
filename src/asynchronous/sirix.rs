@@ -3,11 +3,15 @@
 use crate::types::{Json, Xml};
 
 use super::super::info;
-use super::super::types::{InfoResults, InfoResultsWithResourcesContainer};
+use super::super::types::{InfoResults, InfoResultsWithResourcesContainer, Query};
 use super::client::{Message, SirixResponse};
 use super::database::Database;
-use super::http::{delete_all, global_info, global_info_with_resources};
+use super::http::{
+    delete_all, global_info, global_info_string, global_info_with_resources,
+    global_info_with_resources_string, post_query,
+};
 use super::SirixResult;
+use serde::de::DeserializeOwned;
 use hyper::http::uri::{Authority, Scheme, Uri};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::watch::Receiver;
@@ -62,6 +66,10 @@ impl Sirix {
     }
 
     pub async fn info(&self) -> SirixResult<SirixResponse<InfoResults>> {
+        self.info_raw().await
+    }
+
+    pub async fn info_raw<U: DeserializeOwned>(&self) -> SirixResult<SirixResponse<U>> {
         match self.auth_channel.clone() {
             Some(watcher) => {
                 let token_data = watcher.borrow().as_ref().unwrap().clone();
@@ -86,9 +94,40 @@ impl Sirix {
         }
     }
 
+    pub async fn info_string(&self) -> SirixResult<SirixResponse<String>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                global_info_string(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                global_info_string(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
+
     pub async fn info_with_resources(
         &self,
     ) -> SirixResult<SirixResponse<InfoResultsWithResourcesContainer>> {
+        self.info_with_resources_raw().await
+    }
+
+    pub async fn info_with_resources_raw<U: DeserializeOwned>(
+        &self,
+    ) -> SirixResult<SirixResponse<U>> {
         match self.auth_channel.clone() {
             Some(watcher) => {
                 let token_data = watcher.borrow().as_ref().unwrap().clone();
@@ -103,6 +142,33 @@ impl Sirix {
             }
             None => {
                 global_info_with_resources(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
+
+    pub async fn info_with_resources_string(
+        &self,
+    ) -> SirixResult<SirixResponse<String>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                global_info_with_resources_string(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                global_info_with_resources_string(
                     self.scheme.clone(),
                     self.authority.clone(),
                     None,
@@ -138,6 +204,33 @@ impl Sirix {
         }
     }
 
-    // TODO
-    // query
+    pub async fn query<U: DeserializeOwned>(
+        &self,
+        query: Query,
+    ) -> SirixResult<SirixResponse<U>> {
+        match self.auth_channel.clone() {
+            Some(watcher) => {
+                let token_data = watcher.borrow().as_ref().unwrap().clone();
+                let token = token_data.token_type + " " + &token_data.access_token;
+                post_query(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    query,
+                    Some(&token),
+                    self.channel.clone(),
+                )
+                .await
+            }
+            None => {
+                post_query(
+                    self.scheme.clone(),
+                    self.authority.clone(),
+                    query,
+                    None,
+                    self.channel.clone(),
+                )
+                .await
+            }
+        }
+    }
 }

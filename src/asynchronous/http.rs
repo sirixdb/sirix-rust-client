@@ -1,7 +1,7 @@
 //! This module handles the HTTP interface to a running SirixDB server.
 
 use super::super::types::*;
-use super::client::{request_impl, request_impl_fire_no_response, Message, SirixResponse};
+use super::client::{request_impl, request_impl_fire_no_response, request_impl_string, Message, SirixResponse};
 use super::error::SirixResult;
 // use bytes::Bytes;
 // use futures_core::Stream;
@@ -15,12 +15,12 @@ use tokio::sync::mpsc::Sender;
 /// Wrapper for the asynchronous HTTP client, to call SirixDB endpoints.
 
 /// `GET /`
-pub async fn global_info(
+pub async fn global_info<T: DeserializeOwned>(
     scheme: Scheme,
     authority: Authority,
     authorization: Option<&str>,
     channel: Sender<Message>,
-) -> SirixResult<SirixResponse<InfoResults>> {
+) -> SirixResult<SirixResponse<T>> {
     let mut header_map = HeaderMap::new();
     match authorization {
         Some(authorization) => {
@@ -45,13 +45,43 @@ pub async fn global_info(
     )
     .await
 }
-/// `GET /?withResources=true`
-pub async fn global_info_with_resources(
+/// `GET /` - returns raw string
+pub async fn global_info_string(
     scheme: Scheme,
     authority: Authority,
     authorization: Option<&str>,
     channel: Sender<Message>,
-) -> SirixResult<SirixResponse<InfoResultsWithResourcesContainer>> {
+) -> SirixResult<SirixResponse<String>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => {}
+    };
+    header_map.append("accept", HeaderValue::from_static("application/json"));
+
+    request_impl_string(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_static("/"),
+        Method::GET,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
+/// `GET /?withResources=true`
+pub async fn global_info_with_resources<T: DeserializeOwned>(
+    scheme: Scheme,
+    authority: Authority,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<T>> {
     let mut header_map = HeaderMap::new();
     match authorization {
         Some(authorization) => {
@@ -66,6 +96,37 @@ pub async fn global_info_with_resources(
 
     // Perform request
     request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_static("/?withResources=true"),
+        Method::GET,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
+
+/// `GET /?withResources=true` - returns raw string
+pub async fn global_info_with_resources_string(
+    scheme: Scheme,
+    authority: Authority,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<String>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => {}
+    };
+    header_map.append("accept", HeaderValue::from_static("application/json"));
+
+    request_impl_string(
         channel,
         scheme,
         authority,
@@ -151,13 +212,13 @@ pub async fn create_database(
 /// `GET /<db_name>`
 ///
 /// Return information about database with name `db_name`.
-pub async fn get_database_info(
+pub async fn get_database_info<T: DeserializeOwned>(
     scheme: Scheme,
     authority: Authority,
     db_name: &str,
     authorization: Option<&str>,
     channel: Sender<Message>,
-) -> SirixResult<SirixResponse<DbInfo>> {
+) -> SirixResult<SirixResponse<T>> {
     let mut header_map = HeaderMap::new();
     match authorization {
         Some(authorization) => {
@@ -171,6 +232,40 @@ pub async fn get_database_info(
     header_map.append("accept", HeaderValue::from_static("application/json"));
 
     request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&format!("/{}", db_name)).unwrap(),
+        Method::GET,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
+
+/// `GET /<db_name>` - returns raw string
+///
+/// Return information about database with name `db_name` as a raw string.
+pub async fn get_database_info_string(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<String>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => (),
+    };
+    header_map.append("accept", HeaderValue::from_static("application/json"));
+
+    request_impl_string(
         channel,
         scheme,
         authority,
@@ -225,7 +320,7 @@ pub async fn resource_exists(
     name: &str,
     authorization: Option<&str>,
     channel: Sender<Message>,
-) -> SirixResult<SirixResponse<bool>> {
+) -> SirixResult<SirixResponse<()>> {
     let mut header_map = HeaderMap::new();
     match authorization {
         Some(authorization) => {
@@ -241,7 +336,7 @@ pub async fn resource_exists(
         HeaderValue::from_str(&db_type.to_string()).unwrap(),
     );
 
-    request_impl(
+    Ok(request_impl_fire_no_response(
         channel,
         scheme,
         authority,
@@ -250,7 +345,7 @@ pub async fn resource_exists(
         header_map,
         Body::empty(),
     )
-    .await
+    .await)
 }
 /// `PUT /<db_name>/<name>`
 ///
@@ -280,6 +375,44 @@ pub async fn create_resource<T: DeserializeOwned>(
         HeaderValue::from_str(&db_type.to_string()).unwrap(),
     );
     request_impl(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&format!("/{}/{}", db_name, name)).unwrap(),
+        Method::PUT,
+        header_map,
+        Body::from(initial_data),
+    )
+    .await
+}
+/// `PUT /<db_name>/<name>` - returns raw string
+///
+/// Put request to create resource, returns response as raw string
+pub async fn create_resource_string(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    db_type: DbType,
+    name: &str,
+    initial_data: String,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<String>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => (),
+    };
+    header_map.append(
+        "content-type",
+        HeaderValue::from_str(&db_type.to_string()).unwrap(),
+    );
+    request_impl_string(
         channel,
         scheme,
         authority,
@@ -333,6 +466,49 @@ pub async fn read_resource<T: DeserializeOwned>(
     )
     .await
 }
+/// `GET /<db_name>/<name>` - returns raw string
+///
+/// Read resource with given parameters, returns response as raw string
+pub async fn read_resource_string(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    db_type: DbType,
+    name: &str,
+    params: Vec<(String, String)>,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<String>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => (),
+    };
+    header_map.append(
+        "accept",
+        HeaderValue::from_str(&db_type.to_string()).unwrap(),
+    );
+    let params = params
+        .iter()
+        .map(|param| param.0.to_owned() + "=" + param.1.as_ref())
+        .collect::<Vec<String>>()
+        .join("&");
+    request_impl_string(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&format!("/{}/{}?{}", db_name, name, params)).unwrap(),
+        Method::GET,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
 /// `GET /<db_name>/<name>/history`
 ///
 /// Get the commits in the history of the resource
@@ -370,10 +546,47 @@ pub async fn resource_history<T: DeserializeOwned>(
     )
     .await
 }
+/// `GET /<db_name>/<name>/history` - returns raw string
+///
+/// Get the commits in the history of the resource as a raw string
+pub async fn resource_history_string(
+    scheme: Scheme,
+    authority: Authority,
+    db_name: &str,
+    db_type: DbType,
+    name: &str,
+    authorization: Option<&str>,
+    channel: Sender<Message>,
+) -> SirixResult<SirixResponse<String>> {
+    let mut header_map = HeaderMap::new();
+    match authorization {
+        Some(authorization) => {
+            header_map.append(
+                "authorization",
+                HeaderValue::from_str(authorization).unwrap(),
+            );
+        }
+        None => (),
+    };
+    header_map.append(
+        "accept",
+        HeaderValue::from_str(&db_type.to_string()).unwrap(),
+    );
+    request_impl_string(
+        channel,
+        scheme,
+        authority,
+        PathAndQuery::from_str(&format!("/{}/{}/history", db_name, name)).unwrap(),
+        Method::GET,
+        header_map,
+        Body::empty(),
+    )
+    .await
+}
 /// `GET /<db_name>/<name>/diff`
 ///
 /// Get diffs for the given revisions
-pub async fn diff_resource<T: DeserializeOwned>(
+pub async fn diff_resource(
     scheme: Scheme,
     authority: Authority,
     db_name: &str,
@@ -381,7 +594,7 @@ pub async fn diff_resource<T: DeserializeOwned>(
     params: Vec<(String, String)>,
     authorization: Option<&str>,
     channel: Sender<Message>,
-) -> SirixResult<SirixResponse<T>> {
+) -> SirixResult<SirixResponse<()>> {
     // TODO automatically serialize diffs
     let mut header_map = HeaderMap::new();
     match authorization {
@@ -398,7 +611,7 @@ pub async fn diff_resource<T: DeserializeOwned>(
         .map(|param| param.0.to_owned() + "=" + param.1.as_ref())
         .collect::<Vec<String>>()
         .join("&");
-    request_impl(
+    Ok(request_impl_fire_no_response(
         channel,
         scheme,
         authority,
@@ -407,7 +620,7 @@ pub async fn diff_resource<T: DeserializeOwned>(
         header_map,
         Body::empty(),
     )
-    .await
+    .await)
 }
 /// `POST /`
 ///
@@ -421,6 +634,8 @@ pub async fn post_query<T: DeserializeOwned>(
 ) -> SirixResult<SirixResponse<T>> {
     // TODO automatically serialize diffs
     let mut header_map = HeaderMap::new();
+    header_map.append("content-type", HeaderValue::from_static("application/json"));
+    header_map.append("accept", HeaderValue::from_static("application/json"));
     match authorization {
         Some(authorization) => {
             header_map.append(
@@ -468,31 +683,28 @@ pub async fn get_etag(
         "accept",
         HeaderValue::from_str(&db_type.to_string()).unwrap(),
     );
-    let response: SirixResult<SirixResponse<()>> = request_impl(
+    let response = request_impl_fire_no_response(
         channel,
         scheme,
         authority,
         PathAndQuery::from_str(&format!("/{}/{}?nodeId={}", db_name, name, node_id)).unwrap(),
-        Method::HEAD,
+        Method::GET,
         header_map,
         Body::empty(),
     )
     .await;
-    match response {
-        Ok(response) => Ok(SirixResponse {
-            status: response.status,
-            body: response
-                .headers
-                .clone()
-                .get("etag")
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned(),
-            headers: response.headers,
-        }),
-        Err(err) => Err(err),
-    }
+    Ok(SirixResponse {
+        status: response.status,
+        body: response
+            .headers
+            .clone()
+            .get("etag")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned(),
+        headers: response.headers,
+    })
 }
 /// `POST /<db_name>/<name>`
 ///

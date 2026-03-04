@@ -95,6 +95,51 @@ pub async fn request_impl<T: DeserializeOwned>(
     }
 }
 
+pub async fn request_impl_string(
+    channel: Sender<Message>,
+    scheme: Scheme,
+    authority: Authority,
+    path_and_query: PathAndQuery,
+    method: Method,
+    headers: HeaderMap,
+    body: Body,
+) -> SirixResult<SirixResponse<String>> {
+    let uri = Uri::builder()
+        .scheme(scheme)
+        .authority(authority)
+        .path_and_query(path_and_query)
+        .build()
+        .unwrap();
+    // create request
+    let mut request_builder = Request::builder().uri(uri).method(method);
+    for header in headers {
+        request_builder = request_builder.header(header.0.unwrap(), header.1);
+    }
+    let request = request_builder.body(body).unwrap();
+    // create response channel
+    let (tx, rx) = oneshot::channel::<ResultResponse>();
+    // Perform request
+    let _ = channel
+        .send(Message {
+            request: request,
+            responder: tx,
+        })
+        .await;
+    let response = rx.await.unwrap().unwrap();
+    let status = response.status().clone();
+    let headers = response.headers().clone();
+    // Aggregate body
+    let body = body::aggregate(response).await?;
+    let mut buf: Vec<u8> = vec![];
+    std::io::Read::read_to_end(&mut body.reader(), &mut buf).unwrap();
+
+    Ok(SirixResponse {
+        headers: headers.to_owned(),
+        status: status,
+        body: String::from_utf8_lossy(&buf).into_owned(),
+    })
+}
+
 pub async fn request_impl_fire_no_response(
     channel: Sender<Message>,
     scheme: Scheme,
